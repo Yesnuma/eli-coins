@@ -65,7 +65,7 @@
   .coin-card .mt{font-size:13px;color:var(--soft);margin-top:1px;}
   .coin-card .tg{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;}
   .coin-card .tg span{font-family:'Courier New',monospace;font-size:10.5px;background:var(--chip);color:var(--soft);padding:2px 7px;border-radius:10px;}
-  .coin-card .vl{margin-inline-start:auto;font-family:'Courier New',monospace;font-size:12px;color:var(--pink);font-weight:bold;flex:none;align-self:flex-start;}
+  .coin-card .vl{margin-inline-start:auto;font-family:'Courier New',monospace;font-size:12px;color:var(--pink);font-weight:bold;flex:none;align-self:flex-start;white-space:nowrap;max-width:42%;overflow:hidden;text-overflow:ellipsis;}
   .empty{text-align:center;color:var(--soft);padding:50px 20px;font-style:italic;}
 
   /* coin faces */
@@ -380,6 +380,15 @@ function parseRange(str){
   return [Math.min(...nums),Math.max(...nums)];
 }
 function money(n){return '$'+Math.round(n).toLocaleString('en-US');}
+/* keep only the price range part of a value, e.g. "~$2-$50 per coin, depending…" -> "~$2-$50" */
+function shortValue(v){
+  v=(v||'').toString().trim();
+  if(!v) return '';
+  const m=v.match(/~?\s*\$?\s*\d[\d,]*(?:\.\d+)?\s*(?:[-–—]|to)\s*\$?\s*\d[\d,]*(?:\.\d+)?/i)
+        || v.match(/~?\s*\$?\s*\d[\d,]*(?:\.\d+)?/);
+  if(m) return m[0].replace(/\s*([-–—])\s*/,'$1').replace(/\s+/g,' ').trim();
+  return v.split(/,| per | each | depending/i)[0].trim();
+}
 function updateTotal(){
   const el=document.getElementById('worth');if(!el)return;
   let lo=0,hi=0,counted=0;
@@ -459,7 +468,7 @@ function coinCard(c){
   return '<div class="coin-card'+(selectMode&&selected.has(c.id)?' sel':'')+'" onclick="'+click+'">'+check+faceHTML(c)+
     '<div><div class="nm">'+esc(c.name)+'</div><div class="mt">'+ltr([c.mint,c.year].filter(x=>x&&x!=='—').join(' · '))+'</div>'+
     '<div class="tg">'+c.tags.slice(0,4).map(tg=>'<span>'+esc(tagLabel(tg))+'</span>').join('')+'</div></div>'+
-    '<div class="vl">'+ltr(c.value||'')+'</div></div>';
+    '<div class="vl">'+ltr(shortValue(c.value))+'</div></div>';
 }
 function renderCollections(){
   document.getElementById('count').textContent='';
@@ -576,7 +585,7 @@ document.getElementById('file').addEventListener('change',async e=>{
 });
 /* build + save a coin straight from AI info (no form) — used for bulk add */
 function buildCoinFromInfo(info,img){
-  const d={name:info.name||'',country:info.country||'',year:info.year||'',mint:info.mint||'',denom:info.denomination||'',metal:info.metal||'',value:info.est_value||'',blurb:info.blurb||'',blurb_he:info.blurb_he||'',tags:Array.isArray(info.tags)?info.tags.map(x=>(''+x).toLowerCase()):[]};
+  const d={name:info.name||'',country:info.country||'',year:info.year||'',mint:info.mint||'',denom:info.denomination||'',metal:info.metal||'',value:shortValue(info.est_value||''),blurb:info.blurb||'',blurb_he:info.blurb_he||'',tags:Array.isArray(info.tags)?info.tags.map(x=>(''+x).toLowerCase()):[]};
   enrichTags(d);
   const metal=(d.metal||'').toLowerCase();
   let face=null;
@@ -642,7 +651,7 @@ function enrichTags(d){
   d.tags=out;
 }
 function showDraft(info){
-  pendingDraft={name:info.name||'',country:info.country||'',year:info.year||'',mint:info.mint||'',denom:info.denomination||'',metal:info.metal||'',value:info.est_value||'',blurb:info.blurb||'',blurb_he:info.blurb_he||'',tags:Array.isArray(info.tags)?info.tags.map(x=>(''+x).toLowerCase()):[]};
+  pendingDraft={name:info.name||'',country:info.country||'',year:info.year||'',mint:info.mint||'',denom:info.denomination||'',metal:info.metal||'',value:shortValue(info.est_value||''),blurb:info.blurb||'',blurb_he:info.blurb_he||'',tags:Array.isArray(info.tags)?info.tags.map(x=>(''+x).toLowerCase()):[]};
   enrichTags(pendingDraft);
   draftSheet();
 }
