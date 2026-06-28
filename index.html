@@ -7,6 +7,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyAoKokKZzCGfOHEJAQ0dJzzqkhnN_AtYdQ",
+    authDomain: "eli-coins.firebaseapp.com",
+    projectId: "eli-coins",
+    storageBucket: "eli-coins.firebasestorage.app",
+    messagingSenderId: "729625314825",
+    appId: "1:729625314825:web:bb59e33debf0ba409e1ad8"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window.FB = { db, collection, getDocs, setDoc, deleteDoc, doc };
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
 <style>
   :root{--bg:#f4efe7;--card:#fffdf9;--ink:#1c1814;--soft:#6b6256;--line:#e2d9c9;--blue:#0600FF;--pink:#FF007A;--chip:#efe7d8;}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -256,25 +272,31 @@ async function showBlurb(c){
   try{const h=await aiTranslate(c.blurb||'');c._heBlurb=h;el.textContent=h;}catch(e){el.textContent=c.blurb||'';}
 }
 
-/* ---------- data (English content, session-only) ---------- */
-let coins=[
-  {id:1,name:"Athenian Owl",country:"Greece",year:"c. 440 BC",mint:"Athens",denom:"Tetradrachm",metal:"Silver",value:"est. $900",face:{k:"coin silver",g:"ΑΘΕ",s:"OWL"},tags:["silver","ancient","greek","graded"],blurb:"A classic Athenian tetradrachm with Athena's owl — among the most iconic coins of the ancient world."},
-  {id:2,name:"Silver Denarius",country:"Roman Empire",year:"c. 60 AD",mint:"Rome",denom:"Denarius",metal:"Silver",value:"est. $220",face:{k:"coin silver",g:"R",s:"ROME"},tags:["silver","ancient","roman"],blurb:"The everyday silver coin of the Roman Empire, carrying an emperor's portrait."},
-  {id:3,name:"Widow's Mite",country:"Judea",year:"103–76 BC",mint:"Judea",denom:"Prutah",metal:"Copper",value:"est. $60",face:{k:"coin copper",g:"‡",s:"MITE"},tags:["copper","ancient","judea"],blurb:"A tiny bronze coin from ancient Judea, famous from the biblical story of the widow's offering."},
-  {id:4,name:"$10 Gold Eagle",country:"United States",year:"1901",mint:"San Francisco",denom:"Ten Dollars",metal:"Gold",value:"est. $1,400",face:{k:"coin gold",g:"AV",s:"EAGLE"},tags:["gold","us","dollars","1900s"],blurb:"A Liberty Head gold eagle, struck in San Francisco at the turn of the century."},
-  {id:5,name:"$20 Double Eagle",country:"United States",year:"1873",mint:"Carson City",denom:"Twenty Dollars",metal:"Gold",value:"est. $2,600",face:{k:"coin gold",g:"$20",s:"CC"},tags:["gold","us","1800s","carson city"],blurb:"A heavy double eagle from the legendary Carson City mint — a frontier favorite."},
-  {id:6,name:"Morgan Dollar",country:"United States",year:"1881",mint:"San Francisco",denom:"One Dollar",metal:"Silver",value:"est. $85",face:{k:"coin silver",g:"$1",s:"MORGAN"},tags:["silver","us","dollars","1800s"],blurb:"The Morgan dollar — the big, handsome silver dollar of the American West."},
-  {id:7,name:"Large Cent",country:"United States",year:"1793",mint:"Philadelphia",denom:"One Cent",metal:"Copper",value:"est. $1,100",face:{k:"coin copper",g:"1¢",s:"CHAIN"},tags:["copper","us","cents","1700s"],blurb:"One of America's earliest coins, big as a half-dollar and over 200 years old."},
-  {id:8,name:"Shipwreck Gold",country:"United States",year:"1857",mint:"From the sea",denom:"Gold",metal:"Gold",value:"est. $3,200",face:{k:"coin gold",g:"SS",s:"WRECK"},tags:["gold","us","shipwreck","1800s"],blurb:"Gold recovered from the SS Central America, lost in an 1857 hurricane and raised over a century later."},
-  {id:9,name:"$1,000 Note",country:"United States",year:"1928",mint:"—",denom:"One Thousand Dollars",metal:"Paper",value:"est. $2,800",face:{k:"note ngold",g:"$1,000",s:"GOLD"},tags:["currency","us","1900s"],blurb:"A 1928 gold certificate — large-denomination U.S. currency you'd rarely see in a wallet."},
-  {id:10,name:"Confederate Issue",country:"Confederate States",year:"1864",mint:"Richmond",denom:"Note",metal:"Paper",value:"est. $140",face:{k:"note ngray",g:"CSA",s:"1864"},tags:["currency","confederate","1800s"],blurb:"Paper money issued by the Confederacy during the Civil War."},
-  {id:11,name:"$2 Note",country:"United States",year:"1953",mint:"—",denom:"Two Dollars",metal:"Paper",value:"est. $18",face:{k:"note ngreen",g:"$2",s:"LEGAL"},tags:["currency","us","1900s"],blurb:"The classic $2 bill — common but always a little special."}
-];
-let collections=[{id:1,name:"Gold pieces",coinIds:[4,5,8]}];
+/* ---------- data (loads from / saves to Firebase) ---------- */
+let coins=[];
+let collections=[];
 let nextCoinId=100, nextColId=10;
 
 let activeTags=new Set(), view='all', currentCol=null;
 let selectMode=false, selected=new Set();
+
+/* ---------- Firebase persistence (free Spark plan; photos stored in the doc) ---------- */
+async function loadFromFirestore(){
+  if(!window.FB)return;
+  try{
+    const {db,collection,getDocs}=window.FB;
+    const cs=await getDocs(collection(db,'coins'));
+    coins=cs.docs.map(d=>d.data()).sort((a,b)=>(b.created||0)-(a.created||0));
+    const cols=await getDocs(collection(db,'collections'));
+    collections=cols.docs.map(d=>d.data());
+    nextCoinId=Math.max(99,...coins.map(c=>+c.id||0))+1;
+    nextColId=Math.max(9,...collections.map(c=>+c.id||0))+1;
+  }catch(e){console.error('Firestore load failed',e);}
+}
+function persistCoin(c){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'coins',String(c.id)),c).catch(e=>console.error('save coin',e));}
+function removeCoinDoc(id){if(!window.FB)return;const{db,deleteDoc,doc}=window.FB;deleteDoc(doc(db,'coins',String(id))).catch(e=>console.error('del coin',e));}
+function persistCol(col){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'collections',String(col.id)),col).catch(e=>console.error('save col',e));}
+function removeColDoc(id){if(!window.FB)return;const{db,deleteDoc,doc}=window.FB;deleteDoc(doc(db,'collections',String(id))).catch(e=>console.error('del col',e));}
 
 /* ---------- helpers ---------- */
 function faceHTML(c){
@@ -374,7 +396,7 @@ function openSaveCollection(){
 }
 function createCollection(ids){
   const name=(document.getElementById('colname').value||'').trim();if(!name)return;
-  collections.push({id:nextColId++,name,coinIds:ids});closeModal();setView('collections');
+  const col={id:nextColId++,name,coinIds:ids};collections.push(col);persistCol(col);closeModal();setView('collections');
 }
 
 /* ---------- detail / edit ---------- */
@@ -411,10 +433,11 @@ function saveCoin(id){
   const c=coins.find(x=>x.id===id);
   c.name=val('d-name');c.country=val('d-country');c.year=val('d-year');c.mint=val('d-mint');
   c.denom=val('d-denom');c.metal=val('d-metal');c.value=val('d-value');c.tags=[...tagBuf];
+  persistCoin(c);
   closeModal();render();
 }
-function deleteCoin(id){coins=coins.filter(x=>x.id!==id);collections.forEach(col=>col.coinIds=col.coinIds.filter(x=>x!==id));closeModal();render();}
-function addToCol(){const v=document.getElementById('d-addcol').value;if(!v||!editing)return;const col=collections.find(c=>c.id==v);if(col&&!col.coinIds.includes(editing.id)){col.coinIds.push(editing.id);}document.getElementById('d-addcol').value='';}
+function deleteCoin(id){coins=coins.filter(x=>x.id!==id);collections.forEach(col=>{if(col.coinIds.includes(id)){col.coinIds=col.coinIds.filter(x=>x!==id);persistCol(col);}});removeCoinDoc(id);closeModal();render();}
+function addToCol(){const v=document.getElementById('d-addcol').value;if(!v||!editing)return;const col=collections.find(c=>c.id==v);if(col&&!col.coinIds.includes(editing.id)){col.coinIds.push(editing.id);persistCol(col);}document.getElementById('d-addcol').value='';}
 const val=id=>document.getElementById(id).value;
 
 /* ---------- add a coin (AI + manual) ---------- */
@@ -475,7 +498,8 @@ function commitAdd(){
   let face;
   if(pendingImg) face=null;
   else{const k=metal.includes('gold')?'coin gold':metal.includes('copper')||metal.includes('bronze')?'coin copper':metal.includes('paper')?'note ngreen':'coin silver';face={k,g:(val('a-value')||'$').slice(0,4),s:''};}
-  coins.unshift({id:nextCoinId++,img:pendingImg||null,face,name:val('a-name')||'Untitled',country:val('a-country'),year:val('a-year'),mint:val('a-mint'),denom:val('a-denom'),metal:val('a-metal'),value:val('a-value'),blurb:pendingDraft.blurb,tags:[...pendingDraft.tags]});
+  const nc={id:nextCoinId++,created:Date.now(),img:pendingImg||null,face,name:val('a-name')||'Untitled',country:val('a-country'),year:val('a-year'),mint:val('a-mint'),denom:val('a-denom'),metal:val('a-metal'),value:val('a-value'),blurb:pendingDraft.blurb||'',tags:[...pendingDraft.tags]};
+  coins.unshift(nc);persistCoin(nc);
   pendingImg=null;pendingDraft=null;closeModal();setView('all');
 }
 
@@ -502,8 +526,8 @@ function openAddSelected(){
     '<div class="field" style="margin-top:12px"><label>'+t('newcol')+'</label><input id="newcolsel" placeholder="'+t('newcol')+'"></div>'+
     '<div class="row2"><button class="ghost" onclick="closeModal()">'+t('discard')+'</button><button class="primary" onclick="createColFromSel()">'+t('create')+'</button></div>');
 }
-function addSelTo(colId){const col=collections.find(c=>c.id===colId);if(col){[...selected].forEach(id=>{if(!col.coinIds.includes(id))col.coinIds.push(id);});}finishSel(false);}
-function createColFromSel(){const name=(document.getElementById('newcolsel').value||'').trim();if(!name)return;collections.push({id:nextColId++,name,coinIds:[...selected]});finishSel(true);}
+function addSelTo(colId){const col=collections.find(c=>c.id===colId);if(col){[...selected].forEach(id=>{if(!col.coinIds.includes(id))col.coinIds.push(id);});persistCol(col);}finishSel(false);}
+function createColFromSel(){const name=(document.getElementById('newcolsel').value||'').trim();if(!name)return;const col={id:nextColId++,name,coinIds:[...selected]};collections.push(col);persistCol(col);finishSel(true);}
 function finishSel(goCol){closeModal();selectMode=false;selected.clear();if(goCol){setView('collections');}else{render();}}
 
 /* ---------- albums: new + easy coin picker ---------- */
@@ -513,7 +537,7 @@ function newAlbum(){
     '<div class="row2"><button class="ghost" onclick="closeModal()">'+t('discard')+'</button><button class="primary" onclick="createAlbum()">'+t('create')+'</button></div>');
   setTimeout(()=>{const e=document.getElementById('newalbumname');if(e)e.focus();},60);
 }
-function createAlbum(){const name=(document.getElementById('newalbumname').value||'').trim();if(!name)return;const id=nextColId++;collections.push({id,name,coinIds:[]});closeModal();openAddCoinsTo(id);}
+function createAlbum(){const name=(document.getElementById('newalbumname').value||'').trim();if(!name)return;const id=nextColId++;const col={id,name,coinIds:[]};collections.push(col);persistCol(col);closeModal();openAddCoinsTo(id);}
 let pickSet=new Set();
 function openAddCoinsTo(colId){
   const col=collections.find(c=>c.id===colId);if(!col)return;pickSet=new Set(col.coinIds);
@@ -524,7 +548,7 @@ function openAddCoinsTo(colId){
     '<div class="row2"><button class="primary" onclick="savePicks('+colId+')">'+t('done')+'</button></div>');
 }
 function togglePick(id){if(pickSet.has(id))pickSet.delete(id);else pickSet.add(id);const el=document.getElementById('pk-'+id);if(el)el.classList.toggle('on');}
-function savePicks(colId){const col=collections.find(c=>c.id===colId);if(col)col.coinIds=[...pickSet];closeModal();openCollection(colId);}
+function savePicks(colId){const col=collections.find(c=>c.id===colId);if(col){col.coinIds=[...pickSet];persistCol(col);}closeModal();openCollection(colId);}
 
 /* ---------- modal plumbing ---------- */
 function showSheet(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('show');}
@@ -532,6 +556,8 @@ function closeModal(){document.getElementById('modal').classList.remove('show');
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 
 render();
+window.addEventListener('fb-ready', ()=>loadFromFirestore().then(render));
+if(window.FB) loadFromFirestore().then(render);
 </script>
 </body>
 </html>
