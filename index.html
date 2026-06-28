@@ -219,6 +219,13 @@
   .ptile.sortable-chosen{transform:scale(.94);box-shadow:0 6px 16px rgba(0,0,0,.35);z-index:5;}
   .rehint{padding:8px 16px 2px;font-size:13px;color:var(--soft);font-style:italic;}
 
+  /* ===== background bulk-upload progress pill ===== */
+  .batchchip{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:45;
+    background:var(--ink);color:var(--bg);border-radius:22px;padding:10px 18px;font-size:14px;font-weight:600;
+    display:none;align-items:center;gap:10px;box-shadow:0 8px 22px -6px rgba(0,0,0,.5);max-width:90vw;}
+  .batchchip .spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;flex:none;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
   /* ===== collection total ===== */
   .worth{margin-top:10px;background:var(--blue);color:#fff;border-radius:13px;padding:11px 16px;
     display:flex;align-items:center;justify-content:space-between;gap:10px;}
@@ -290,7 +297,7 @@ const T={
     suggested:"Suggested:",manual:"or type it in yourself",err:"Couldn’t read that one",
     select:"Select",selected:"selected",addsel:"Add to Collection",done:"Done",
     newalbum:"New album",addcoins:"Add coins",tapadd:"Tap coins to add or remove",selectall:"Select all",deselectall:"Deselect all",worth:"Collection value",
-    catal:"Cataloging",added:"Added",skipped:"skipped",bulkhint:"Pick several photos at once to add them all",draghint:"Hold and drag a photo to rearrange"},
+    catal:"Cataloging",added:"Added",skipped:"skipped",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange"},
   he:{title:"המטבעות של אלי",search:"חיפוש",all:"כל המטבעות",collections:"אוספים",add:"הוספת מטבע",
     save_col:"✦ צור אוסף מאלה",clear:"ניקוי",coins:"מטבעות",take:"צילום או בחירת תמונה",
     reading:"קורא את המטבע…",country:"מדינה",year:"שנה",mint:"מטבעה / מקום",denom:"ערך נקוב",
@@ -300,7 +307,7 @@ const T={
     suggested:"מוצע:",manual:"או הקלידו בעצמכם",err:"לא הצלחתי לקרוא את התמונה",
     select:"בחירה",selected:"נבחרו",addsel:"הוספה לאוסף",done:"סיום",
     newalbum:"אוסף חדש",addcoins:"הוספת מטבעות",tapadd:"הקישו על מטבעות להוספה או הסרה",selectall:"בחר הכול",deselectall:"בטל הכול",worth:"שווי האוסף",
-    catal:"מקטלג",added:"נוספו",skipped:"דולגו",bulkhint:"אפשר לבחור כמה תמונות יחד כדי להוסיף את כולן",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש"}
+    catal:"מקטלג",added:"נוספו",skipped:"דולגו",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש"}
 };
 let lang='en';
 const t=k=>T[lang][k];
@@ -594,24 +601,37 @@ function buildCoinFromInfo(info,img){
   coins.unshift(nc);persistCoin(nc);saveOrder();return nc;
 }
 /* bulk: catalog a whole batch of photos one after another */
-function runBatch(files){
-  const N=files.length,work=document.getElementById('addwork');
-  let done=0,failed=0;
-  const tick=()=>{work.innerHTML='<div class="status">'+t('catal')+' '+(done+failed)+' / '+N+' …</div>';};
-  tick();
-  (async()=>{
-    for(let i=0;i<files.length;i++){
-      try{
-        const p=await prepImage(files[i]);
-        let info={};try{info=await identify(p.dataUrl);}catch(_){info={};}
-        buildCoinFromInfo(info,p.dataUrl);
-        done++;
-      }catch(e){failed++;}
-      tick();
-    }
-    work.innerHTML='<div class="status">✓ '+t('added')+' '+done+(failed?(' · '+failed+' '+t('skipped')):'')+'</div>'+
-      '<div class="row2"><button class="primary" onclick="closeModal();setView(\'all\')">'+t('done')+'</button></div>';
-  })();
+let batch={running:false,done:0,failed:0,total:0};
+function batchChip(){
+  let el=document.getElementById('batchchip');
+  if(!el){el=document.createElement('div');el.id='batchchip';el.className='batchchip';document.body.appendChild(el);}
+  if(!batch.total){el.style.display='none';return;}
+  el.style.display='flex';
+  if(batch.running){
+    el.innerHTML='<span class="spin"></span><span>'+t('catal')+' '+(batch.done+batch.failed)+' / '+batch.total+' …</span>';
+  }else{
+    el.innerHTML='<span>✓ '+t('added')+' '+batch.done+(batch.failed?(' · '+batch.failed+' '+t('skipped')):'')+'</span>';
+    setTimeout(()=>{if(!batch.running){el.style.display='none';batch.total=0;}},4000);
+  }
+}
+async function runBatch(files){
+  if(batch.running) return;               // one batch at a time
+  batch={running:true,done:0,failed:0,total:files.length};
+  closeModal();                            // let her keep using the app
+  batchChip();
+  for(let i=0;i<files.length;i++){
+    try{
+      const p=await prepImage(files[i]);
+      let info={};try{info=await identify(p.dataUrl);}catch(_){info={};}
+      buildCoinFromInfo(info,p.dataUrl);
+      batch.done++;
+    }catch(e){batch.failed++;}
+    batchChip();
+    // live-refresh the list as coins land (unless she's reading a coin)
+    if(view==='all' && !document.getElementById('modal').classList.contains('show')) render();
+  }
+  batch.running=false; saveOrder(); batchChip();
+  if(view==='all' && !document.getElementById('modal').classList.contains('show')) render();
 }
 function prepImage(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const o=r.result,m=(o.match(/^data:(.*?);/)||[])[1]||'image/jpeg';const fb=()=>res({dataUrl:o,b64:o.split(',')[1],mime:m});const img=new Image();img.onload=()=>{try{const mx=900,s=Math.min(1,mx/Math.max(img.width,img.height)),w=Math.max(1,img.width*s|0),h=Math.max(1,img.height*s|0),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);const d=cv.toDataURL('image/jpeg',.8);res({dataUrl:d,b64:d.split(',')[1],mime:'image/jpeg'});}catch(e){fb();}};img.onerror=fb;img.src=o;};r.onerror=()=>rej(new Error('open failed'));r.readAsDataURL(file);});}
 async function identify(imageDataUrl){
