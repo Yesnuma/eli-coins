@@ -454,23 +454,19 @@ document.getElementById('file').addEventListener('change',async e=>{
   document.getElementById('addwork').innerHTML='<div class="status">'+t('reading')+'</div>';
   try{
     const prepped=await prepImage(f);pendingImg=prepped.dataUrl;
-    const info=await identify(prepped.b64,prepped.mime);
+    let info={};
+    try{ info=await identify(prepped.dataUrl); }
+    catch(aiErr){ info={}; /* AI hiccup — keep the photo, fill the rest by hand */ }
     showDraft(info);
   }catch(err){document.getElementById('addwork').innerHTML='<div class="err">'+t('err')+' ('+(err.message||err)+')</div>';}
   e.target.value='';
 });
-function prepImage(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const o=r.result,m=(o.match(/^data:(.*?);/)||[])[1]||'image/jpeg';const fb=()=>res({dataUrl:o,b64:o.split(',')[1],mime:m});const img=new Image();img.onload=()=>{try{const mx=1100,s=Math.min(1,mx/Math.max(img.width,img.height)),w=Math.max(1,img.width*s|0),h=Math.max(1,img.height*s|0),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);const d=cv.toDataURL('image/jpeg',.85);res({dataUrl:d,b64:d.split(',')[1],mime:'image/jpeg'});}catch(e){fb();}};img.onerror=fb;img.src=o;};r.onerror=()=>rej(new Error('open failed'));r.readAsDataURL(file);});}
-async function identify(b64,mime){
-  const prompt=`You are a friendly numismatic expert cataloging a coin or banknote from a photo. Identify it as best you can; if worn/unclear, give your best guess and say so gently. Respond ONLY with JSON, no markdown:
-{"name":"common name","country":"","year":"e.g. 1881 or 'c. 440 BC'","mint":"mint/place or mark, else ''","denomination":"","metal":"","est_value":"rough range like '$30–$80', ~ if unsure","tags":["3-6 short lowercase english tags like 'gold','silver','us','roman','1800s','graded','dollar'"],"blurb":"2-3 warm plain sentences a non-expert would enjoy; mention if the photo made anything hard to read"}`;
-  const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:mime||"image/jpeg",data:b64}},{type:"text",text:prompt}]}]})});
-  if(!resp.ok)throw new Error('server '+resp.status);
-  const data=await resp.json();
-  if(!data||!Array.isArray(data.content))throw new Error('no reply');
-  let txt=data.content.filter(i=>i.type==='text').map(i=>i.text).join(' ').trim();
-  const m=txt.match(/\{[\s\S]*\}/);if(!m)throw new Error('unclear');
-  return JSON.parse(m[0]);
+function prepImage(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const o=r.result,m=(o.match(/^data:(.*?);/)||[])[1]||'image/jpeg';const fb=()=>res({dataUrl:o,b64:o.split(',')[1],mime:m});const img=new Image();img.onload=()=>{try{const mx=900,s=Math.min(1,mx/Math.max(img.width,img.height)),w=Math.max(1,img.width*s|0),h=Math.max(1,img.height*s|0),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);const d=cv.toDataURL('image/jpeg',.8);res({dataUrl:d,b64:d.split(',')[1],mime:'image/jpeg'});}catch(e){fb();}};img.onerror=fb;img.src=o;};r.onerror=()=>rej(new Error('open failed'));r.readAsDataURL(file);});}
+async function identify(imageDataUrl){
+  const resp=await fetch("/.netlify/functions/read-coin",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({image:imageDataUrl})});
+  if(!resp.ok){let msg='';try{msg=(await resp.json()).error||'';}catch(_){ } throw new Error('AI '+resp.status+(msg?': '+msg:''));}
+  return await resp.json();
 }
 function showDraft(info){
   pendingDraft={name:info.name||'',country:info.country||'',year:info.year||'',mint:info.mint||'',denom:info.denomination||'',metal:info.metal||'',value:info.est_value||'',blurb:info.blurb||'',tags:Array.isArray(info.tags)?info.tags.map(x=>(''+x).toLowerCase()):[]};
