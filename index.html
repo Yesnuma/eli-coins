@@ -7,9 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, getDoc, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyAoKokKZzCGfOHEJAQ0dJzzqkhnN_AtYdQ",
     authDomain: "eli-coins.firebaseapp.com",
@@ -20,7 +21,7 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  window.FB = { db, collection, getDocs, setDoc, deleteDoc, doc };
+  window.FB = { db, collection, getDocs, getDoc, setDoc, deleteDoc, doc };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 <style>
@@ -192,6 +193,32 @@
   @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
   #splash.gone{opacity:0;pointer-events:none;}
 
+  /* ===== photo lightbox (tap a coin photo to enlarge) ===== */
+  .zoomable{position:relative;cursor:zoom-in;}
+  .zoomable::after{content:'⤢';position:absolute;right:-3px;bottom:-3px;background:var(--blue);color:#fff;
+    font-size:11px;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+  #lightbox{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.93);display:none;align-items:center;justify-content:center;overflow:auto;}
+  #lightbox.show{display:flex;}
+  #lightbox img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in;}
+  #lightbox.zoom{align-items:flex-start;justify-content:flex-start;}
+  #lightbox.zoom img{max-width:none;max-height:none;width:210%;cursor:zoom-out;}
+  #lightbox .lx{position:fixed;top:max(14px,env(safe-area-inset-top));right:18px;font-size:30px;color:#fff;
+    background:rgba(0,0,0,.4);border:none;z-index:1001;cursor:pointer;line-height:1;width:44px;height:44px;border-radius:50%;}
+
+  /* ===== view toggle (list vs photo grid) ===== */
+  .vtoggle{display:flex;gap:0;margin-inline-start:auto;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--card);}
+  .vtoggle button{font:inherit;border:none;background:transparent;padding:7px 13px;font-size:16px;color:var(--soft);cursor:pointer;}
+  .vtoggle button.on{background:var(--ink);color:var(--bg);}
+
+  /* ===== iPhone-album photo grid ===== */
+  .photos{padding:3px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;}
+  .ptile{position:relative;aspect-ratio:1/1;background:#e8e0d2;overflow:hidden;cursor:pointer;border-radius:3px;}
+  .ptile img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+  .ptile .drawn{width:100%;height:100%;display:flex;align-items:center;justify-content:center;pointer-events:none;transform:scale(1.15);}
+  .ptile.sortable-ghost{opacity:.3;}
+  .ptile.sortable-chosen{transform:scale(.94);box-shadow:0 6px 16px rgba(0,0,0,.35);z-index:5;}
+  .rehint{padding:8px 16px 2px;font-size:13px;color:var(--soft);font-style:italic;}
+
   /* ===== collection total ===== */
   .worth{margin-top:10px;background:var(--blue);color:#fff;border-radius:13px;padding:11px 16px;
     display:flex;align-items:center;justify-content:space-between;gap:10px;}
@@ -201,6 +228,7 @@
 </style>
 </head>
 <body>
+<div id="lightbox"><button class="lx" onclick="closePhoto()">×</button><img id="lightboximg" alt=""></div>
 <div id="splash" onclick="enterSite()">
   <img src="cover.jpg" alt="The Coin Collector Times">
   <div class="tap">tap to enter ›</div>
@@ -222,6 +250,10 @@
     <div class="tabs">
       <div class="tab on" id="tab-all" onclick="setView('all')">All coins</div>
       <div class="tab" id="tab-col" onclick="setView('collections')">Collections</div>
+      <div class="vtoggle" id="vtoggle">
+        <button id="v-list" class="on" onclick="setDisplay('list')" title="List">☰</button>
+        <button id="v-photo" onclick="setDisplay('photo')" title="Photos">▦</button>
+      </div>
     </div>
   </div>
 
@@ -258,7 +290,7 @@ const T={
     suggested:"Suggested:",manual:"or type it in yourself",err:"Couldn’t read that one",
     select:"Select",selected:"selected",addsel:"Add to Collection",done:"Done",
     newalbum:"New album",addcoins:"Add coins",tapadd:"Tap coins to add or remove",selectall:"Select all",deselectall:"Deselect all",worth:"Collection value",
-    catal:"Cataloging",added:"Added",skipped:"skipped",bulkhint:"Pick several photos at once to add them all"},
+    catal:"Cataloging",added:"Added",skipped:"skipped",bulkhint:"Pick several photos at once to add them all",draghint:"Hold and drag a photo to rearrange"},
   he:{title:"המטבעות של אלי",search:"חיפוש",all:"כל המטבעות",collections:"אוספים",add:"הוספת מטבע",
     save_col:"✦ צור אוסף מאלה",clear:"ניקוי",coins:"מטבעות",take:"צילום או בחירת תמונה",
     reading:"קורא את המטבע…",country:"מדינה",year:"שנה",mint:"מטבעה / מקום",denom:"ערך נקוב",
@@ -268,7 +300,7 @@ const T={
     suggested:"מוצע:",manual:"או הקלידו בעצמכם",err:"לא הצלחתי לקרוא את התמונה",
     select:"בחירה",selected:"נבחרו",addsel:"הוספה לאוסף",done:"סיום",
     newalbum:"אוסף חדש",addcoins:"הוספת מטבעות",tapadd:"הקישו על מטבעות להוספה או הסרה",selectall:"בחר הכול",deselectall:"בטל הכול",worth:"שווי האוסף",
-    catal:"מקטלג",added:"נוספו",skipped:"דולגו",bulkhint:"אפשר לבחור כמה תמונות יחד כדי להוסיף את כולן"}
+    catal:"מקטלג",added:"נוספו",skipped:"דולגו",bulkhint:"אפשר לבחור כמה תמונות יחד כדי להוסיף את כולן",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש"}
 };
 let lang='en';
 const t=k=>T[lang][k];
@@ -293,22 +325,31 @@ let coins=[];
 let collections=[];
 let nextCoinId=100, nextColId=10;
 
-let activeTags=new Set(), view='all', currentCol=null;
+let activeTags=new Set(), view='all', currentCol=null, displayMode='list';
 let selectMode=false, selected=new Set();
 
 /* ---------- Firebase persistence (free Spark plan; photos stored in the doc) ---------- */
 async function loadFromFirestore(){
   if(!window.FB)return;
   try{
-    const {db,collection,getDocs}=window.FB;
+    const {db,collection,getDocs,getDoc,doc}=window.FB;
     const cs=await getDocs(collection(db,'coins'));
     coins=cs.docs.map(d=>d.data()).sort((a,b)=>(b.created||0)-(a.created||0));
     const cols=await getDocs(collection(db,'collections'));
     collections=cols.docs.map(d=>d.data());
     nextCoinId=Math.max(99,...coins.map(c=>+c.id||0))+1;
     nextColId=Math.max(9,...collections.map(c=>+c.id||0))+1;
+    // apply saved manual order, if any
+    try{
+      const od=await getDoc(doc(db,'meta','order'));
+      if(od.exists()&&Array.isArray(od.data().ids)){
+        const pos={};od.data().ids.forEach((id,i)=>pos[id]=i);
+        coins.sort((a,b)=>((pos[a.id]??9e9)-(pos[b.id]??9e9)));
+      }
+    }catch(_){}
   }catch(e){console.error('Firestore load failed',e);}
 }
+function saveOrder(){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'meta','order'),{ids:coins.map(c=>c.id)}).catch(e=>console.error('save order',e));}
 function persistCoin(c){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'coins',String(c.id)),c).catch(e=>console.error('save coin',e));}
 function removeCoinDoc(id){if(!window.FB)return;const{db,deleteDoc,doc}=window.FB;deleteDoc(doc(db,'coins',String(id))).catch(e=>console.error('del coin',e));}
 function persistCol(col){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'collections',String(col.id)),col).catch(e=>console.error('save col',e));}
@@ -357,6 +398,11 @@ function render(){
   document.getElementById('savecol').textContent=t('save_col');
   updateTotal();
 
+  // view toggle only shows on All-coins
+  document.getElementById('vtoggle').style.display=(view==='all')?'flex':'none';
+  document.getElementById('v-list').classList.toggle('on',displayMode==='list');
+  document.getElementById('v-photo').classList.toggle('on',displayMode==='photo');
+
   if(view==='collections'){selectMode=false;updateSelChrome();renderCollections();document.getElementById('tagwrap').style.display='none';return;}
   document.getElementById('tagwrap').style.display='block';
 
@@ -369,13 +415,43 @@ function render(){
 
   const list=matches();
   document.getElementById('count').textContent=list.length+' '+t('coins');
-  document.getElementById('savecol').style.display=(!selectMode&&(activeTags.size||document.getElementById('q').value))?'block':'none';
+  document.getElementById('savecol').style.display=(!selectMode&&displayMode==='list'&&(activeTags.size||document.getElementById('q').value))?'block':'none';
   document.getElementById('selectbtn').textContent=selectMode?t('done'):t('select');
+  document.getElementById('selectbtn').style.display=(displayMode==='photo')?'none':'';
   updateSelChrome();
+
+  if(displayMode==='photo'){ renderPhotos(list); return; }
 
   document.getElementById('main').innerHTML='<div class="grid">'+(
     list.length?list.map(coinCard).join(''):'<div class="empty">'+t('none')+'</div>'
   )+'</div>';
+}
+function renderPhotos(list){
+  const canReorder = !activeTags.size && !document.getElementById('q').value.trim();
+  const tiles=list.map(c=>{
+    const inner = c.img ? '<img src="'+c.img+'">' : '<span class="drawn">'+faceHTML(c)+'</span>';
+    return '<div class="ptile" data-id="'+c.id+'" onclick="openDetail('+c.id+')">'+inner+'</div>';
+  }).join('');
+  const hint = (canReorder && list.length>1) ? '<div class="rehint">'+t('draghint')+'</div>' : '';
+  document.getElementById('main').innerHTML = list.length
+    ? hint+'<div class="photos" id="photogrid">'+tiles+'</div>'
+    : '<div class="empty">'+t('none')+'</div>';
+  if(canReorder) initPhotoSort();
+}
+let _sortable=null;
+function initPhotoSort(){
+  const grid=document.getElementById('photogrid');
+  if(!grid||!window.Sortable)return;
+  if(_sortable){try{_sortable.destroy();}catch(_){ }_sortable=null;}
+  _sortable=window.Sortable.create(grid,{
+    animation:150, delay:220, delayOnTouchOnly:true, touchStartThreshold:6,
+    onEnd:()=>{
+      const ids=[...grid.children].map(el=>+el.dataset.id).filter(x=>!isNaN(x));
+      const pos={};ids.forEach((id,i)=>pos[id]=i);
+      coins.sort((a,b)=>((pos[a.id]??9e9)-(pos[b.id]??9e9)));
+      saveOrder();
+    }
+  });
 }
 function coinCard(c){
   const check = selectMode ? '<span class="selcircle '+(selected.has(c.id)?'on':'')+'"></span>' : '';
@@ -414,6 +490,7 @@ function openCollection(id){
 function toggleTag(tg){activeTags.has(tg)?activeTags.delete(tg):activeTags.add(tg);render();}
 function clearTags(){activeTags.clear();render();}
 function setView(v){view=v;document.getElementById('tab-all').classList.toggle('on',v==='all');document.getElementById('tab-col').classList.toggle('on',v==='collections');render();}
+function setDisplay(m){displayMode=m;if(m==='photo')selectMode=false;render();}
 function setLang(l){lang=l;document.documentElement.dir=(l==='he')?'rtl':'ltr';document.getElementById('l-en').classList.toggle('on',l==='en');document.getElementById('l-he').classList.toggle('on',l==='he');render();}
 const esc=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -438,7 +515,7 @@ function openDetail(id){
   const c=coins.find(x=>x.id===id);if(!c)return;editing=c;
   const colOpts=collections.map(col=>'<option value="'+col.id+'">'+esc(col.name)+'</option>').join('');
   showSheet('<button class="x" onclick="closeModal()">×</button>'+
-    '<div class="preview">'+faceHTML(c)+'<div><h3>'+esc(c.name)+'</h3><div style="color:var(--soft);font-size:13px">'+ltr([c.country,c.year].filter(Boolean).join(' · '))+'</div></div></div>'+
+    '<div class="preview">'+(c.img?faceHTML(c).replace('class="face"','class="face zoomable" onclick="openPhotoFor('+c.id+')"'):faceHTML(c))+'<div><h3>'+esc(c.name)+'</h3><div style="color:var(--soft);font-size:13px">'+ltr([c.country,c.year].filter(Boolean).join(' · '))+'</div></div></div>'+
     '<div class="blurb" id="d-blurb">'+esc(c.blurb||'')+'</div>'+
     field('Name','d-name',c.name)+
     grid2(field('Country','d-country',c.country)+field('Year','d-year',c.year))+
@@ -505,7 +582,7 @@ function buildCoinFromInfo(info,img){
   let face=null;
   if(!img){const k=metal.includes('gold')?'coin gold':metal.includes('copper')||metal.includes('bronze')?'coin copper':metal.includes('paper')?'note ngreen':'coin silver';face={k,g:(d.value||'$').slice(0,4),s:''};}
   const nc={id:nextCoinId++,created:Date.now(),img:img||null,face,name:d.name||'Untitled',country:d.country,year:d.year,mint:d.mint,denom:d.denom,metal:d.metal,value:d.value,blurb:d.blurb,blurb_he:d.blurb_he,tags:[...d.tags]};
-  coins.unshift(nc);persistCoin(nc);return nc;
+  coins.unshift(nc);persistCoin(nc);saveOrder();return nc;
 }
 /* bulk: catalog a whole batch of photos one after another */
 function runBatch(files){
@@ -592,7 +669,7 @@ function commitAdd(){
   if(pendingImg) face=null;
   else{const k=metal.includes('gold')?'coin gold':metal.includes('copper')||metal.includes('bronze')?'coin copper':metal.includes('paper')?'note ngreen':'coin silver';face={k,g:(val('a-value')||'$').slice(0,4),s:''};}
   const nc={id:nextCoinId++,created:Date.now(),img:pendingImg||null,face,name:val('a-name')||'Untitled',country:val('a-country'),year:val('a-year'),mint:val('a-mint'),denom:val('a-denom'),metal:val('a-metal'),value:val('a-value'),blurb:pendingDraft.blurb||'',blurb_he:pendingDraft.blurb_he||'',tags:[...pendingDraft.tags]};
-  coins.unshift(nc);persistCoin(nc);
+  coins.unshift(nc);persistCoin(nc);saveOrder();
   pendingImg=null;pendingDraft=null;closeModal();setView('all');
 }
 
@@ -647,6 +724,16 @@ function savePicks(colId){const col=collections.find(c=>c.id===colId);if(col){co
 function showSheet(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('show');}
 function closeModal(){document.getElementById('modal').classList.remove('show');}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+/* ---------- photo lightbox ---------- */
+function openPhotoFor(id){const c=coins.find(x=>x.id===id);if(!c||!c.img)return;openPhoto(c.img);}
+function openPhoto(src){const lb=document.getElementById('lightbox');document.getElementById('lightboximg').src=src;lb.classList.remove('zoom');lb.classList.add('show');}
+function closePhoto(){document.getElementById('lightbox').classList.remove('show','zoom');}
+document.getElementById('lightbox').addEventListener('click',e=>{
+  const lb=document.getElementById('lightbox');
+  if(e.target.id==='lightboximg'){lb.classList.toggle('zoom');}
+  else if(e.target.id==='lightbox'){closePhoto();}
+});
 
 /* ---------- cover splash ---------- */
 function enterSite(){const s=document.getElementById('splash');if(!s)return;s.classList.add('gone');setTimeout(()=>s.remove(),500);}
