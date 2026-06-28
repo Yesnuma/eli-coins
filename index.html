@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, getDocs, getDoc, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -550,10 +549,8 @@ function openCollection(id){
   document.getElementById('v-photo').classList.toggle('on',displayMode==='photo');
   updateSelChrome();
   const list=coins.filter(c=>col.coinIds.includes(c.id));
-  const hasPhotos=list.some(c=>c.img);
   const upBtn='<button class="addcoins" onclick="openAdd('+id+')">＋ '+t('add')+'</button>';
   const exBtn='<button class="existbtn" onclick="openAddCoinsTo('+id+')">'+t('addexisting')+'</button>';
-  const dlBtn=hasPhotos?'<button class="dlbtn" onclick="downloadCollection('+id+')">⬇ '+t('download')+'</button>':'';
   let body;
   if(displayMode==='photo'){
     const tiles=list.map(c=>{const inner=c.img?'<img src="'+c.img+'">':'<span class="drawn">'+faceHTML(c)+'</span>';return '<div class="ptile" data-id="'+c.id+'" onclick="openDetail('+c.id+')">'+inner+'</div>';}).join('');
@@ -561,27 +558,9 @@ function openCollection(id){
   }else{
     body='<div class="grid">'+(list.length?list.map(coinCard).join(''):'<div class="empty">'+t('tapadd')+'</div>')+'</div>';
   }
-  document.getElementById('main').innerHTML=upBtn+exBtn+dlBtn+body;
+  document.getElementById('main').innerHTML=upBtn+exBtn+body;
 }
 function exitCollection(){currentCol=null;document.getElementById('vtoggle').style.display='none';setView('collections');}
-/* download all photos in a collection as a zip */
-async function downloadCollection(id){
-  const col=collections.find(c=>c.id===id);if(!col)return;
-  const pics=coins.filter(c=>col.coinIds.includes(c.id)&&c.img);
-  if(!pics.length){alert(t('nophotos'));return;}
-  if(!window.JSZip){alert('Zip tool still loading — try again in a moment.');return;}
-  const btn=document.querySelector('.dlbtn');if(btn){btn.textContent='…';btn.disabled=true;}
-  try{
-    const zip=new window.JSZip();
-    pics.forEach((c,i)=>{const b64=(c.img.split(',')[1])||'';const safe=(c.name||('coin'+c.id)).replace(/[^a-z0-9]+/gi,'_').slice(0,40);zip.file(String(i+1).padStart(2,'0')+'_'+safe+'.jpg',b64,{base64:true});});
-    const blob=await zip.generateAsync({type:'blob'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=(col.name||'collection').replace(/[^a-z0-9]+/gi,'_')+'.zip';
-    document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),3000);
-  }catch(e){alert('Download failed: '+(e.message||e));}
-  if(btn){btn.textContent='⬇ '+t('download');btn.disabled=false;}
-}
 
 function toggleTag(tg){activeTags.has(tg)?activeTags.delete(tg):activeTags.add(tg);render();}
 function clearTags(){activeTags.clear();render();}
