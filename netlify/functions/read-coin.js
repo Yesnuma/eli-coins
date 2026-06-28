@@ -7,7 +7,7 @@ exports.handler = async (event) => {
     if (!image) return { statusCode: 400, body: JSON.stringify({ error: "no image" }) };
 
     const prompt = `You are a friendly numismatic expert cataloging a coin or banknote from a photo. Identify it as best you can; if worn or unclear, give your best guess and say so gently. Respond ONLY with a JSON object, no markdown:
-{"name":"common name","country":"","year":"e.g. 1881 or 'c. 440 BC'","mint":"mint/place or mark, else ''","denomination":"","metal":"","est_value":"rough range like '$30-$80', ~ if unsure","tags":["3-6 short lowercase english tags like 'gold','silver','us','roman','1800s','graded','dollar'"],"blurb":"2-3 warm plain sentences a non-expert would enjoy; mention if the photo made anything hard to read"}`;
+{"name":"common name","country":"","year":"e.g. 1881 or 'c. 440 BC'","mint":"mint/place or mark, else ''","denomination":"","metal":"","est_value":"rough range like '$30-$80', ~ if unsure","tags":["3-6 short lowercase english tags like 'gold','silver','us','roman','1800s','graded','dollar'"],"blurb":"2-3 warm plain sentences in ENGLISH a non-expert would enjoy; mention if the photo made anything hard to read","blurb_he":"the SAME blurb written in natural, warm modern Hebrew"}`;
 
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -17,7 +17,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: "gpt-4o",
-        max_tokens: 600,
+        max_tokens: 800,
         messages: [{
           role: "user",
           content: [
