@@ -10,8 +10,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs, getDoc, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteField, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getStorage, ref as sref, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
   const firebaseConfig = {
     apiKey: "AIzaSyAoKokKZzCGfOHEJAQ0dJzzqkhnN_AtYdQ",
     authDomain: "eli-coins.firebaseapp.com",
@@ -23,8 +24,13 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+  const storage = getStorage(app);
   setPersistence(auth, browserLocalPersistence).catch(()=>{});
-  window.FB = { db, collection, getDocs, getDoc, setDoc, deleteDoc, doc };
+  window.FB = { db, collection, getDocs, getDoc, setDoc, updateDoc, deleteField, deleteDoc, doc };
+  window.STORE = {
+    async upload(path, dataUrl){ const r=sref(storage,path); await uploadString(r,dataUrl,'data_url'); return await getDownloadURL(r); },
+    async remove(path){ try{ await deleteObject(sref(storage,path)); }catch(_){} }
+  };
   window.AUTH = {
     auth,
     signIn:(email,pw)=>signInWithEmailAndPassword(auth,email,pw),
@@ -198,7 +204,7 @@
   .pickrow .note{width:50px;height:32px;}
 
   /* ===== cover splash ===== */
-  #splash{position:fixed;inset:0;z-index:999;background:#26201a;display:flex;flex-direction:column;
+  #splash{position:fixed;inset:0;z-index:999;background:#1f1813;display:flex;flex-direction:column;
     align-items:center;justify-content:center;cursor:pointer;transition:opacity .5s ease;}
   #splash img{width:100%;height:100%;object-fit:cover;}
   #splash .tap{position:absolute;bottom:max(24px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;
@@ -262,6 +268,7 @@
 <div id="splash">
   <img src="cover.jpg" alt="The Coin Collector Times">
   <div class="tap" id="taphint" style="display:none">tap to enter ›</div>
+  <div class="tap" id="splashload" style="display:flex;align-items:center;gap:9px;justify-content:center"><span class="spin" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span>loading…</div>
   <div class="gate" id="gate">
     <input id="pw-email" type="email" inputmode="email" autocapitalize="off" autocomplete="username" placeholder="Email">
     <input id="pw" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')tryEnter()">
@@ -329,7 +336,7 @@ const T={
     suggested:"Suggested:",manual:"or type it in yourself",err:"Couldn’t read that one",
     select:"Select",selected:"selected",addsel:"Add to Collection",done:"Done",
     newalbum:"New album",addcoins:"Add coins",tapadd:"Tap coins to add or remove",selectall:"Select all",deselectall:"Deselect all",worth:"Collection value",
-    catal:"Cataloging",added:"Added",skipped:"skipped",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange",download:"Download photos",nophotos:"No photos to download in this album yet.",dragcol:"Hold and drag to reorder albums",addinto:"Adding to",addexisting:"Or choose from coins you already have"},
+    catal:"Cataloging",added:"Added",skipped:"skipped",optimizing:"Optimizing photos",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange",download:"Download photos",nophotos:"No photos to download in this album yet.",dragcol:"Hold and drag to reorder albums",addinto:"Adding to",addexisting:"Or choose from coins you already have"},
   he:{title:"המטבעות של אלי",search:"חיפוש",all:"כל המטבעות",collections:"אוספים",add:"הוספת מטבע",
     save_col:"✦ צור אוסף מאלה",clear:"ניקוי",coins:"מטבעות",take:"צילום או בחירת תמונה",
     reading:"קורא את המטבע…",country:"מדינה",year:"שנה",mint:"מטבעה / מקום",denom:"ערך נקוב",
@@ -339,7 +346,7 @@ const T={
     suggested:"מוצע:",manual:"או הקלידו בעצמכם",err:"לא הצלחתי לקרוא את התמונה",
     select:"בחירה",selected:"נבחרו",addsel:"הוספה לאוסף",done:"סיום",
     newalbum:"אוסף חדש",addcoins:"הוספת מטבעות",tapadd:"הקישו על מטבעות להוספה או הסרה",selectall:"בחר הכול",deselectall:"בטל הכול",worth:"שווי האוסף",
-    catal:"מקטלג",added:"נוספו",skipped:"דולגו",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש",download:"הורדת תמונות",nophotos:"אין עדיין תמונות להורדה באוסף הזה.",dragcol:"החזיקו וגררו כדי לסדר אוספים",addinto:"מוסיף אל",addexisting:"או בחרו ממטבעות שכבר יש לכם"}
+    catal:"מקטלג",added:"נוספו",skipped:"דולגו",optimizing:"מייעל תמונות",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש",download:"הורדת תמונות",nophotos:"אין עדיין תמונות להורדה באוסף הזה.",dragcol:"החזיקו וגררו כדי לסדר אוספים",addinto:"מוסיף אל",addexisting:"או בחרו ממטבעות שכבר יש לכם"}
 };
 let lang='en';
 const t=k=>T[lang][k];
@@ -388,14 +395,39 @@ async function loadFromFirestore(){
 function saveMeta(){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'collections','__meta__'),meta).catch(e=>console.error('save meta',e));}
 function saveOrder(){meta.coinOrder=coins.map(c=>c.id);saveMeta();}
 function saveColOrder(){meta.colOrder=collections.map(c=>c.id);saveMeta();}
-function persistCoin(c){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'coins',String(c.id)),c).catch(e=>console.error('save coin',e));}
+function persistCoin(c){if(!window.FB)return;const{db,setDoc,doc}=window.FB;const p=Object.assign({},c);if(p.imgUrl){delete p.img;}/* once uploaded to Storage, never store base64 */ setDoc(doc(db,'coins',String(c.id)),p).catch(e=>console.error('save coin',e));}
+/* the photo a coin should show: Storage URL if uploaded, else in-memory/base64 */
+function coinPhoto(c){return c.imgUrl||c.img||'';}
+/* one-time: move existing in-database photos to Storage, safely (upload first, then slim the record) */
+async function migratePhotosIfNeeded(){
+  if(batch.running) return;
+  const todo=coins.filter(c=>c.img && !c.imgUrl);
+  if(!todo.length) return;
+  batch={running:true,done:0,failed:0,total:todo.length,label:t('optimizing')};
+  batchChip();
+  for(const c of todo){
+    try{
+      const url=await uploadPhoto(c.id,c.img);
+      c.imgUrl=url;            // now has a Storage URL
+      persistCoin(c);          // persistCoin drops base64 because imgUrl is set
+      batch.done++;
+    }catch(e){ console.error('migrate',e); batch.failed++; }
+    batchChip();
+  }
+  batch.running=false; batch.label=null; batchChip();
+  render();
+}
+
+/* upload one photo to Storage, return its URL */
+async function uploadPhoto(coinId,dataUrl){ if(!window.STORE) throw new Error('no storage'); return await window.STORE.upload('photos/'+coinId+'.jpg', dataUrl); }
 function removeCoinDoc(id){if(!window.FB)return;const{db,deleteDoc,doc}=window.FB;deleteDoc(doc(db,'coins',String(id))).catch(e=>console.error('del coin',e));}
 function persistCol(col){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'collections',String(col.id)),col).catch(e=>console.error('save col',e));}
 function removeColDoc(id){if(!window.FB)return;const{db,deleteDoc,doc}=window.FB;deleteDoc(doc(db,'collections',String(id))).catch(e=>console.error('del col',e));}
 
 /* ---------- helpers ---------- */
 function faceHTML(c){
-  if(c.img) return '<span class="face"><img src="'+c.img+'"></span>';
+  const p=coinPhoto(c);
+  if(p) return '<span class="face"><img src="'+p+'" loading="lazy" decoding="async"></span>';
   const f=c.face||{k:"coin silver",g:"?",s:""};
   if(f.k.startsWith("note")) return '<span class="face"><span class="'+f.k+'">'+f.g+'<small>'+f.s+'</small></span></span>';
   return '<span class="face"><span class="'+f.k+'"><span><span class="yr">'+f.g+'</span><small>'+f.s+'</small></span></span></span>';
@@ -476,7 +508,8 @@ function render(){
 function renderPhotos(list){
   const canReorder = !activeTags.size && !document.getElementById('q').value.trim();
   const tiles=list.map(c=>{
-    const inner = c.img ? '<img src="'+c.img+'">' : '<span class="drawn">'+faceHTML(c)+'</span>';
+    const p=coinPhoto(c);
+    const inner = p ? '<img src="'+p+'" loading="lazy" decoding="async">' : '<span class="drawn">'+faceHTML(c)+'</span>';
     return '<div class="ptile" data-id="'+c.id+'" onclick="openDetail('+c.id+')">'+inner+'</div>';
   }).join('');
   const hint = (canReorder && list.length>1) ? '<div class="rehint">'+t('draghint')+'</div>' : '';
@@ -553,7 +586,7 @@ function openCollection(id){
   const exBtn='<button class="existbtn" onclick="openAddCoinsTo('+id+')">'+t('addexisting')+'</button>';
   let body;
   if(displayMode==='photo'){
-    const tiles=list.map(c=>{const inner=c.img?'<img src="'+c.img+'">':'<span class="drawn">'+faceHTML(c)+'</span>';return '<div class="ptile" data-id="'+c.id+'" onclick="openDetail('+c.id+')">'+inner+'</div>';}).join('');
+    const tiles=list.map(c=>{const p=coinPhoto(c);const inner=p?'<img src="'+p+'" loading="lazy" decoding="async">':'<span class="drawn">'+faceHTML(c)+'</span>';return '<div class="ptile" data-id="'+c.id+'" onclick="openDetail('+c.id+')">'+inner+'</div>';}).join('');
     body=list.length?'<div class="photos">'+tiles+'</div>':'<div class="empty">'+t('tapadd')+'</div>';
   }else{
     body='<div class="grid">'+(list.length?list.map(coinCard).join(''):'<div class="empty">'+t('tapadd')+'</div>')+'</div>';
@@ -590,7 +623,7 @@ function openDetail(id){
   const c=coins.find(x=>x.id===id);if(!c)return;editing=c;
   const colOpts=collections.map(col=>'<option value="'+col.id+'">'+esc(col.name)+'</option>').join('');
   showSheet('<button class="x" onclick="closeModal()">×</button>'+
-    '<div class="preview">'+(c.img?faceHTML(c).replace('class="face"','class="face zoomable" onclick="openPhotoFor('+c.id+')"'):faceHTML(c))+'<div><h3>'+esc(c.name)+'</h3><div style="color:var(--soft);font-size:13px">'+ltr([c.country,c.year].filter(Boolean).join(' · '))+'</div></div></div>'+
+    '<div class="preview">'+(coinPhoto(c)?faceHTML(c).replace('class="face"','class="face zoomable" onclick="openPhotoFor('+c.id+')"'):faceHTML(c))+'<div><h3>'+esc(c.name)+'</h3><div style="color:var(--soft);font-size:13px">'+ltr([c.country,c.year].filter(Boolean).join(' · '))+'</div></div></div>'+
     '<div class="blurb" id="d-blurb">'+esc(c.blurb||'')+'</div>'+
     field('Name','d-name',c.name)+
     grid2(field('Country','d-country',c.country)+field('Year','d-year',c.year))+
@@ -621,7 +654,7 @@ function saveCoin(id){
   persistCoin(c);
   closeModal();render();
 }
-function deleteCoin(id){coins=coins.filter(x=>x.id!==id);collections.forEach(col=>{if(col.coinIds.includes(id)){col.coinIds=col.coinIds.filter(x=>x!==id);persistCol(col);}});removeCoinDoc(id);closeModal();render();}
+function deleteCoin(id){coins=coins.filter(x=>x.id!==id);collections.forEach(col=>{if(col.coinIds.includes(id)){col.coinIds=col.coinIds.filter(x=>x!==id);persistCol(col);}});removeCoinDoc(id);if(window.STORE)window.STORE.remove('photos/'+id+'.jpg');closeModal();render();}
 function addToCol(){const v=document.getElementById('d-addcol').value;if(!v||!editing)return;const col=collections.find(c=>c.id==v);if(col&&!col.coinIds.includes(editing.id)){col.coinIds.push(editing.id);persistCol(col);}document.getElementById('d-addcol').value='';}
 const val=id=>document.getElementById(id).value;
 
@@ -653,14 +686,17 @@ document.getElementById('file').addEventListener('change',async e=>{
   e.target.value='';
 });
 /* build + save a coin straight from AI info (no form) — used for bulk add */
-function buildCoinFromInfo(info,img){
+async function buildCoinFromInfo(info,img){
   const d={name:info.name||'',country:info.country||'',year:info.year||'',mint:info.mint||'',denom:info.denomination||'',metal:info.metal||'',value:shortValue(info.est_value||''),blurb:info.blurb||'',blurb_he:info.blurb_he||'',tags:Array.isArray(info.tags)?info.tags.map(x=>(''+x).toLowerCase()):[]};
   enrichTags(d);
   const metal=(d.metal||'').toLowerCase();
   let face=null;
   if(!img){const k=metal.includes('gold')?'coin gold':metal.includes('copper')||metal.includes('bronze')?'coin copper':metal.includes('paper')?'note ngreen':'coin silver';face={k,g:(d.value||'$').slice(0,4),s:''};}
-  const nc={id:nextCoinId++,created:Date.now(),img:img||null,face,name:d.name||'Untitled',country:d.country,year:d.year,mint:d.mint,denom:d.denom,metal:d.metal,value:d.value,blurb:d.blurb,blurb_he:d.blurb_he,tags:[...d.tags]};
-  coins.unshift(nc);persistCoin(nc);saveOrder();attachToTarget(nc.id);return nc;
+  const nc={id:nextCoinId++,created:Date.now(),img:img||null,imgUrl:null,face,name:d.name||'Untitled',country:d.country,year:d.year,mint:d.mint,denom:d.denom,metal:d.metal,value:d.value,blurb:d.blurb,blurb_he:d.blurb_he,tags:[...d.tags]};
+  coins.unshift(nc);saveOrder();attachToTarget(nc.id);
+  if(img){ try{ nc.imgUrl=await uploadPhoto(nc.id,img); }catch(e){ console.error('photo upload',e); } }
+  persistCoin(nc);
+  return nc;
 }
 /* bulk: catalog a whole batch of photos one after another */
 let batch={running:false,done:0,failed:0,total:0};
@@ -670,7 +706,7 @@ function batchChip(){
   if(!batch.total){el.style.display='none';return;}
   el.style.display='flex';
   if(batch.running){
-    el.innerHTML='<span class="spin"></span><span>'+t('catal')+' '+(batch.done+batch.failed)+' / '+batch.total+' …</span>';
+    el.innerHTML='<span class="spin"></span><span>'+(batch.label||t('catal'))+' '+(batch.done+batch.failed)+' / '+batch.total+' …</span>';
   }else{
     el.innerHTML='<span>✓ '+t('added')+' '+batch.done+(batch.failed?(' · '+batch.failed+' '+t('skipped')):'')+'</span>';
     setTimeout(()=>{if(!batch.running){el.style.display='none';batch.total=0;}},4000);
@@ -685,7 +721,7 @@ async function runBatch(files){
     try{
       const p=await prepImage(files[i]);
       let info={};try{info=await identify(p.dataUrl);}catch(_){info={};}
-      buildCoinFromInfo(info,p.dataUrl);
+      await buildCoinFromInfo(info,p.dataUrl);
       batch.done++;
     }catch(e){batch.failed++;}
     batchChip();
@@ -756,16 +792,19 @@ function draftSheet(){
 function renderAddTags(){const box=document.getElementById('a-tags');box.innerHTML=pendingDraft.tags.map((tg,i)=>'<span class="t">'+esc(tagLabel(tg))+'<b onclick="rmAddTag('+i+')">×</b></span>').join('')+'<input id="a-newtag" placeholder="'+t('addtag')+'" onkeydown="if(event.key===\'Enter\'){addAddTag();event.preventDefault();}">';}
 function rmAddTag(i){pendingDraft.tags.splice(i,1);renderAddTags();}
 function addAddTag(){const v=(document.getElementById('a-newtag').value||'').toLowerCase().trim();if(v&&!pendingDraft.tags.includes(v))pendingDraft.tags.push(v);renderAddTags();document.getElementById('a-newtag').focus();}
-function commitAdd(){
+async function commitAdd(){
   const metal=(val('a-metal')||'').toLowerCase();
   let face;
   if(pendingImg) face=null;
   else{const k=metal.includes('gold')?'coin gold':metal.includes('copper')||metal.includes('bronze')?'coin copper':metal.includes('paper')?'note ngreen':'coin silver';face={k,g:(val('a-value')||'$').slice(0,4),s:''};}
-  const nc={id:nextCoinId++,created:Date.now(),img:pendingImg||null,face,name:val('a-name')||'Untitled',country:val('a-country'),year:val('a-year'),mint:val('a-mint'),denom:val('a-denom'),metal:val('a-metal'),value:val('a-value'),blurb:pendingDraft.blurb||'',blurb_he:pendingDraft.blurb_he||'',tags:[...pendingDraft.tags]};
-  coins.unshift(nc);persistCoin(nc);saveOrder();attachToTarget(nc.id);
+  const photo=pendingImg||null;
+  const nc={id:nextCoinId++,created:Date.now(),img:photo,imgUrl:null,face,name:val('a-name')||'Untitled',country:val('a-country'),year:val('a-year'),mint:val('a-mint'),denom:val('a-denom'),metal:val('a-metal'),value:val('a-value'),blurb:pendingDraft.blurb||'',blurb_he:pendingDraft.blurb_he||'',tags:[...pendingDraft.tags]};
+  coins.unshift(nc);saveOrder();attachToTarget(nc.id);
   const tgt=uploadTarget; uploadTarget=null;
   pendingImg=null;pendingDraft=null;closeModal();
   if(tgt){openCollection(tgt);}else{setView('all');}
+  if(photo){ try{ nc.imgUrl=await uploadPhoto(nc.id,photo); }catch(e){ console.error('photo upload',e); } }
+  persistCoin(nc);
 }
 
 /* ---------- iOS-style multi-select → add to collection ---------- */
@@ -821,7 +860,7 @@ function closeModal(){document.getElementById('modal').classList.remove('show');
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 
 /* ---------- photo lightbox ---------- */
-function openPhotoFor(id){const c=coins.find(x=>x.id===id);if(!c||!c.img)return;openPhoto(c.img);}
+function openPhotoFor(id){const c=coins.find(x=>x.id===id);if(!c)return;const p=coinPhoto(c);if(!p)return;openPhoto(p);}
 function openPhoto(src){const lb=document.getElementById('lightbox');document.getElementById('lightboximg').src=src;lb.classList.remove('zoom');lb.classList.add('show');}
 function closePhoto(){document.getElementById('lightbox').classList.remove('show','zoom');}
 document.getElementById('lightbox').addEventListener('click',e=>{
@@ -843,7 +882,7 @@ function setupGate(){
       if(user){
         // logged in: show the cover with a simple tap-to-enter
         gate.style.display='none'; tap.style.display='block'; sp.onclick=enterSite;
-        if(window.FB) loadFromFirestore().then(render);
+        if(window.FB) loadFromFirestore().then(()=>{render();migratePhotosIfNeeded();});
       }else{
         // not logged in: show the login fields, lock the rest
         gate.style.display='flex'; tap.style.display='none'; sp.onclick=null;
