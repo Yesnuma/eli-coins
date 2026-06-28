@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eli's Coins</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f4efe7;--card:#fffdf9;--ink:#1c1814;--soft:#6b6256;--line:#e2d9c9;--blue:#0600FF;--pink:#FF007A;--chip:#efe7d8;}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;line-height:1.45;}
+  [dir=rtl]{direction:rtl;}
+  .app{max-width:760px;margin:0 auto;padding-bottom:90px;}
+
+  /* top bar */
+  .top{position:sticky;top:0;z-index:20;background:var(--bg);padding:14px 16px 8px;border-bottom:1px solid var(--line);}
+  .titlerow{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .title{font-family:Georgia,serif;font-weight:700;font-size:24px;}
+  .lang{font-family:'Courier New',monospace;font-size:12px;border:1px solid var(--ink);border-radius:20px;overflow:hidden;display:flex;flex:none;}
+  .lang button{font:inherit;border:none;background:transparent;padding:6px 12px;cursor:pointer;color:var(--soft);}
+  .lang button.on{background:var(--ink);color:var(--bg);}
+  .search{margin-top:10px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;}
+  .search input{flex:1;border:none;background:transparent;font-size:16px;color:var(--ink);outline:none;}
+  .search .ic{color:var(--soft);}
+
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin-top:10px;}
+  .tab{font-family:'Courier New',monospace;font-size:12px;letter-spacing:.04em;text-transform:uppercase;padding:7px 14px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--soft);cursor:pointer;}
+  .tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+
+  /* tag rail */
+  .tagrail{display:flex;gap:7px;overflow-x:auto;padding:12px 16px 6px;scrollbar-width:none;}
+  .tagrail::-webkit-scrollbar{display:none;}
+  .chip{flex:none;font-family:'Courier New',monospace;font-size:12.5px;padding:7px 13px;border-radius:20px;background:var(--chip);color:var(--ink);cursor:pointer;border:1px solid transparent;white-space:nowrap;}
+  .chip.on{background:var(--blue);color:#fff;}
+  .chip.clear{background:transparent;border:1px solid var(--pink);color:var(--pink);}
+
+  .meta-line{padding:2px 16px 0;font-family:'Courier New',monospace;font-size:11.5px;color:var(--soft);display:flex;justify-content:space-between;align-items:center;}
+  .savecol{font-family:'Courier New',monospace;font-size:11.5px;color:var(--blue);cursor:pointer;border:none;background:none;font-weight:bold;}
+
+  /* coin grid */
+  .grid{padding:10px 16px;display:grid;grid-template-columns:1fr;gap:10px;}
+  .coin-card{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;transition:transform .12s;}
+  .coin-card:active{transform:scale(.99);}
+  .coin-card .nm{font-family:Georgia,serif;font-weight:700;font-size:17px;line-height:1.15;}
+  .coin-card .mt{font-size:13px;color:var(--soft);margin-top:1px;}
+  .coin-card .tg{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;}
+  .coin-card .tg span{font-family:'Courier New',monospace;font-size:10.5px;background:var(--chip);color:var(--soft);padding:2px 7px;border-radius:10px;}
+  .coin-card .vl{margin-inline-start:auto;font-family:'Courier New',monospace;font-size:12px;color:var(--pink);font-weight:bold;flex:none;align-self:flex-start;}
+  .empty{text-align:center;color:var(--soft);padding:50px 20px;font-style:italic;}
+
+  /* coin faces */
+  .face{flex:none;width:62px;height:62px;display:flex;align-items:center;justify-content:center;}
+  .coin{width:60px;height:60px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-weight:700;overflow:hidden;border:1px solid rgba(0,0,0,.25);box-shadow:0 2px 5px rgba(0,0,0,.18);}
+  .coin .yr{font-size:13px;}.coin small{display:block;font-family:'Courier New',monospace;font-size:7px;letter-spacing:.06em;opacity:.7;}
+  .coin::after{content:'';position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.2),inset 0 -5px 9px rgba(0,0,0,.35);}
+  .gold{background:radial-gradient(circle at 38% 30%,#f7e69a,#c99b4d 55%,#876327);color:#5e451c;}
+  .silver{background:radial-gradient(circle at 38% 30%,#fbfcfe,#c4cad2 55%,#868d97);color:#454c56;}
+  .copper{background:radial-gradient(circle at 38% 30%,#edb389,#b5703f 55%,#7e4622);color:#5a3018;}
+  .note{width:62px;height:40px;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Georgia,serif;font-weight:700;font-size:13px;border:1px solid rgba(0,0,0,.25);}
+  .note small{font-family:'Courier New',monospace;font-size:7px;opacity:.8;}
+  .ngreen{background:linear-gradient(135deg,#bfe3cc,#8fc3a4);color:#28503a;}
+  .ngold{background:linear-gradient(135deg,#f0e4bf,#c9af6e);color:#6a521f;}
+  .ngray{background:linear-gradient(135deg,#d8d2c4,#b3aa95);color:#473f2c;}
+  .face img{width:60px;height:60px;border-radius:50%;object-fit:cover;border:1px solid rgba(0,0,0,.25);box-shadow:0 2px 5px rgba(0,0,0,.18);}
+
+  /* iOS-style multi-select */
+  .selcircle{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--soft);align-self:center;}
+  .selcircle.on{background:var(--blue);border-color:var(--blue);position:relative;}
+  .selcircle.on::after{content:'✓';color:#fff;font-size:14px;font-weight:bold;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  .coin-card.sel{border-color:var(--blue);background:#f1f0ff;}
+  .selbar{position:fixed;bottom:0;left:0;right:0;z-index:31;background:var(--card);border-top:1px solid var(--line);
+    padding:14px 18px calc(16px + env(safe-area-inset-bottom));display:none;align-items:center;justify-content:space-between;max-width:760px;margin:0 auto;}
+  .selbar span{font-family:'Courier New',monospace;font-size:14px;color:var(--ink);}
+  .selbar button{background:var(--blue);color:#fff;border:none;border-radius:22px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;}
+  .selbar button:disabled{opacity:.35;}
+  .selbar .selall{background:transparent;color:var(--blue);border:none;padding:8px 2px;font-size:15px;font-weight:700;}
+
+  /* floating add button */
+  .fab{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:30;background:var(--blue);color:#fff;border:none;border-radius:30px;
+    font-size:16px;font-weight:600;padding:15px 26px;box-shadow:0 8px 22px -6px rgba(6,0,255,.55);cursor:pointer;display:flex;gap:8px;align-items:center;}
+  .fab:active{transform:translateX(-50%) translateY(1px);}
+
+  /* modal */
+  .modal{position:fixed;inset:0;z-index:40;background:rgba(20,16,12,.5);display:none;align-items:flex-end;justify-content:center;}
+  .modal.show{display:flex;}
+  .sheet{background:var(--bg);width:100%;max-width:760px;max-height:92vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:18px 18px 40px;}
+  .sheet h3{font-family:Georgia,serif;font-size:21px;margin-bottom:2px;}
+  .sheet .x{float:inline-end;font-size:24px;background:none;border:none;color:var(--soft);cursor:pointer;line-height:1;}
+  .addbtn{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;border:2px dashed var(--ink);border-radius:14px;padding:24px;cursor:pointer;background:var(--card);margin:6px 0 12px;}
+  .addbtn .p{font-size:34px;color:var(--blue);line-height:1;}
+  .addbtn .s{font-family:'Courier New',monospace;font-size:11px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;}
+  input[type=file]{display:none;}
+  .status{text-align:center;font-family:'Courier New',monospace;font-size:13px;color:var(--blue);padding:14px;}
+  .err{border:1px solid var(--pink);background:#fff;border-radius:10px;padding:12px;color:var(--pink);font-size:13px;font-family:'Courier New',monospace;margin:6px 0;}
+  .preview{display:flex;gap:14px;align-items:center;margin:6px 0 12px;}
+  .field{margin:8px 0;}
+  .field label{display:block;font-family:'Courier New',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);margin-bottom:3px;}
+  .field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:15px;background:var(--card);color:var(--ink);font-family:inherit;}
+  .field textarea{min-height:64px;resize:vertical;}
+  .tagedit{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .tagedit .t{font-family:'Courier New',monospace;font-size:12px;background:var(--chip);padding:5px 10px;border-radius:14px;display:flex;gap:6px;align-items:center;}
+  .tagedit .t b{cursor:pointer;color:var(--pink);font-weight:bold;}
+  .tagedit input{flex:1;min-width:100px;border:none;background:transparent;outline:none;font-family:'Courier New',monospace;font-size:13px;padding:6px;}
+  .suggest{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
+  .suggest span{font-family:'Courier New',monospace;font-size:11.5px;border:1px dashed var(--soft);color:var(--soft);padding:4px 9px;border-radius:12px;cursor:pointer;}
+  .row2{display:flex;gap:10px;margin-top:16px;}
+  .row2 button{flex:1;border-radius:11px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;border:1px solid var(--ink);}
+  .primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .ghost{background:transparent;color:var(--ink);}
+  .blurb{font-size:14.5px;line-height:1.55;color:#2a241d;margin:6px 0;}
+  .selrow{display:flex;gap:8px;align-items:center;margin-top:10px;}
+  .selrow select{flex:1;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--card);font-size:14px;}
+
+  /* collections */
+  .col-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 16px 10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+  .col-card .cn{font-family:Georgia,serif;font-weight:700;font-size:18px;}
+  .col-card .cc{font-family:'Courier New',monospace;font-size:12px;color:var(--soft);}
+  /* ===== legibility pass: one clean font for EN + HE, bigger sizes for older eyes ===== */
+  *{font-family:'Heebo',-apple-system,system-ui,sans-serif !important;}
+  body{font-size:17px;}
+  .title{font-size:30px;font-weight:800;}
+  .search input{font-size:18px;}
+  .search .ic{font-size:18px;}
+  .tab{font-size:14px;font-weight:600;letter-spacing:0;padding:9px 16px;}
+  .chip{font-size:15px;padding:10px 16px;font-weight:500;}
+  .meta-line{font-size:14px;}
+  .savecol{font-size:15px;font-weight:700;}
+  .coin-card{padding:14px;gap:16px;}
+  .coin-card .nm{font-size:21px;font-weight:700;}
+  .coin-card .mt{font-size:16px;color:#4a4339;margin-top:2px;}
+  .coin-card .tg span{font-size:13.5px;padding:4px 10px;}
+  .coin-card .vl{font-size:15px;font-weight:700;}
+  .sheet h3{font-size:24px;font-weight:700;}
+  .field label{font-size:13.5px;font-weight:700;}
+  .field input,.field textarea{font-size:18px;}
+  .tagedit .t{font-size:15px;}
+  .fab{font-size:19px;font-weight:700;}
+  .selbar span{font-size:16px;font-weight:600;}
+  .blurb{font-size:17px;line-height:1.6;}
+  .coin{border:1px solid rgba(0,0,0,.25);}
+
+  /* ===== collections as photo albums ===== */
+  .albums{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .album{cursor:pointer;}
+  .album .cover{aspect-ratio:1/1;border-radius:18px;background:var(--card);border:1px solid var(--line);
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;padding:14px;overflow:hidden;
+    box-shadow:0 6px 16px -10px rgba(0,0,0,.25);}
+  .album .cover .cell{display:flex;align-items:center;justify-content:center;}
+  .album .cover .coin{width:48px !important;height:48px !important;}
+  .album .cover .note{width:50px !important;height:32px !important;font-size:12px !important;}
+  .album .cover img{width:48px !important;height:48px !important;}
+  .album .cover .face{width:auto;height:auto;}
+  .album.newcol .cover{border:2px dashed var(--blue);display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:46px;font-weight:700;}
+  .album .an{font-size:18px;font-weight:700;margin-top:10px;}
+  .album .ac{font-size:14px;color:var(--soft);}
+
+  /* in-album add button + coin picker */
+  .addcoins{display:block;width:calc(100% - 32px);margin:6px 16px 14px;border:2px dashed var(--blue);color:var(--blue);
+    background:rgba(6,0,255,.05);border-radius:16px;padding:17px;font-size:18px;font-weight:700;cursor:pointer;text-align:center;}
+  .pickrow{display:flex;align-items:center;gap:16px;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .pickrow .pn{font-size:18px;font-weight:600;}
+  .pickrow .pm{font-size:14px;color:var(--soft);}
+  .pickrow .coin{width:48px;height:48px;}
+  .pickrow .note{width:50px;height:32px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="titlerow">
+      <div class="title" id="apptitle">Eli&rsquo;s Coins</div>
+      <div class="lang">
+        <button id="l-en" class="on" onclick="setLang('en')">EN</button>
+        <button id="l-he" onclick="setLang('he')">עב</button>
+      </div>
+    </div>
+    <div class="search">
+      <span class="ic">⌕</span>
+      <input id="q" placeholder="Search" oninput="render()">
+    </div>
+    <div class="tabs">
+      <div class="tab on" id="tab-all" onclick="setView('all')">All coins</div>
+      <div class="tab" id="tab-col" onclick="setView('collections')">Collections</div>
+    </div>
+  </div>
+
+  <div id="tagwrap">
+    <div class="tagrail" id="tagrail"></div>
+    <div class="meta-line">
+      <span id="count"></span>
+      <span style="display:flex;gap:16px;align-items:center">
+        <button class="savecol" id="selectbtn" onclick="toggleSelectMode()">Select</button>
+        <button class="savecol" id="savecol" onclick="openSaveCollection()" style="display:none">✦ Save these as a collection</button>
+      </span>
+    </div>
+  </div>
+
+  <div id="main"></div>
+</div>
+
+<button class="fab" onclick="openAdd()"><span>＋</span><span id="fab-t">Add a coin</span></button>
+<div class="selbar" id="selbar"></div>
+
+<!-- ADD / DETAIL modal -->
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<input id="file" type="file" accept="image/*">
+
+<script>
+/* ---------- i18n (interface only; content stays English) ---------- */
+const T={
+  en:{title:"Eli’s Coins",search:"Search",all:"All coins",collections:"Collections",add:"Add a coin",
+    save_col:"✦ Make album from these",clear:"clear",coins:"coins",take:"take a photo or choose one",
+    reading:"Reading the coin…",country:"Country",year:"Year",mint:"Mint / Place",denom:"Denomination",
+    metal:"Metal",value:"Est. value",tags:"Tags",about:"About this piece",addtag:"add a tag…",
+    save:"Save",discard:"Discard",del:"Delete",addto:"Add to collection…",newcol:"New collection name",
+    create:"Create",none:"No coins yet — add your first one.",nocol:"No collections yet.",
+    suggested:"Suggested:",manual:"or type it in yourself",err:"Couldn’t read that one",
+    select:"Select",selected:"selected",addsel:"Add to Collection",done:"Done",
+    newalbum:"New album",addcoins:"Add coins",tapadd:"Tap coins to add or remove",selectall:"Select all",deselectall:"Deselect all"},
+  he:{title:"המטבעות של אלי",search:"חיפוש",all:"כל המטבעות",collections:"אוספים",add:"הוספת מטבע",
+    save_col:"✦ צור אוסף מאלה",clear:"ניקוי",coins:"מטבעות",take:"צילום או בחירת תמונה",
+    reading:"קורא את המטבע…",country:"מדינה",year:"שנה",mint:"מטבעה / מקום",denom:"ערך נקוב",
+    metal:"מתכת",value:"שווי משוער",tags:"תגיות",about:"על הפריט",addtag:"הוספת תגית…",
+    save:"שמירה",discard:"ביטול",del:"מחיקה",addto:"הוספה לאוסף…",newcol:"שם האוסף החדש",
+    create:"יצירה",none:"אין עדיין מטבעות — הוסיפו את הראשון.",nocol:"אין עדיין אוספים.",
+    suggested:"מוצע:",manual:"או הקלידו בעצמכם",err:"לא הצלחתי לקרוא את התמונה",
+    select:"בחירה",selected:"נבחרו",addsel:"הוספה לאוסף",done:"סיום",
+    newalbum:"אוסף חדש",addcoins:"הוספת מטבעות",tapadd:"הקישו על מטבעות להוספה או הסרה",selectall:"בחר הכול",deselectall:"בטל הכול"}
+};
+let lang='en';
+const t=k=>T[lang][k];
+
+/* tag DISPLAY translations — value stays English (so filtering never fragments), label shows Hebrew */
+const HE_TAGS={gold:"זהב",silver:"כסף",copper:"נחושת",bronze:"ארד",paper:"נייר",ancient:"עתיק",greek:"יווני",
+  roman:"רומי",judea:"יהודה",graded:"מדורג",us:'ארה"ב',dollars:"דולרים",dollar:"דולר",cents:"סנטים",
+  currency:"שטרות",shipwreck:"ספינה טרופה",confederate:"קונפדרציה","1700s":"המאה ה-18","1800s":"המאה ה-19",
+  "1900s":"המאה ה-20","carson city":"קרסון סיטי"};
+const tagLabel=tg=>(lang==='he'?(HE_TAGS[tg]||tg):tg);
+/* isolate English/number text so it reads correctly inside a right-to-left page */
+const ltr=s=>'<span dir="ltr" style="unicode-bidi:isolate">'+esc(s)+'</span>';
+
+async function aiTranslate(text){
+  const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:"Translate the following into natural, modern Hebrew. Return ONLY the Hebrew translation, no quotes, no extra text:\n\n"+text}]})});
+  if(!resp.ok)throw new Error('t'+resp.status);
+  const d=await resp.json();return d.content.filter(i=>i.type==='text').map(i=>i.text).join(' ').trim();
+}
+async function showBlurb(c){
+  const el=document.getElementById('d-blurb');if(!el)return;
+  if(lang!=='he'){el.textContent=c.blurb||'';return;}
+  if(c._heBlurb){el.textContent=c._heBlurb;return;}
+  el.textContent='מתרגם…';
+  try{const h=await aiTranslate(c.blurb||'');c._heBlurb=h;el.textContent=h;}catch(e){el.textContent=c.blurb||'';}
+}
+
+/* ---------- data (English content, session-only) ---------- */
+let coins=[
+  {id:1,name:"Athenian Owl",country:"Greece",year:"c. 440 BC",mint:"Athens",denom:"Tetradrachm",metal:"Silver",value:"est. $900",face:{k:"coin silver",g:"ΑΘΕ",s:"OWL"},tags:["silver","ancient","greek","graded"],blurb:"A classic Athenian tetradrachm with Athena's owl — among the most iconic coins of the ancient world."},
+  {id:2,name:"Silver Denarius",country:"Roman Empire",year:"c. 60 AD",mint:"Rome",denom:"Denarius",metal:"Silver",value:"est. $220",face:{k:"coin silver",g:"R",s:"ROME"},tags:["silver","ancient","roman"],blurb:"The everyday silver coin of the Roman Empire, carrying an emperor's portrait."},
+  {id:3,name:"Widow's Mite",country:"Judea",year:"103–76 BC",mint:"Judea",denom:"Prutah",metal:"Copper",value:"est. $60",face:{k:"coin copper",g:"‡",s:"MITE"},tags:["copper","ancient","judea"],blurb:"A tiny bronze coin from ancient Judea, famous from the biblical story of the widow's offering."},
+  {id:4,name:"$10 Gold Eagle",country:"United States",year:"1901",mint:"San Francisco",denom:"Ten Dollars",metal:"Gold",value:"est. $1,400",face:{k:"coin gold",g:"AV",s:"EAGLE"},tags:["gold","us","dollars","1900s"],blurb:"A Liberty Head gold eagle, struck in San Francisco at the turn of the century."},
+  {id:5,name:"$20 Double Eagle",country:"United States",year:"1873",mint:"Carson City",denom:"Twenty Dollars",metal:"Gold",value:"est. $2,600",face:{k:"coin gold",g:"$20",s:"CC"},tags:["gold","us","1800s","carson city"],blurb:"A heavy double eagle from the legendary Carson City mint — a frontier favorite."},
+  {id:6,name:"Morgan Dollar",country:"United States",year:"1881",mint:"San Francisco",denom:"One Dollar",metal:"Silver",value:"est. $85",face:{k:"coin silver",g:"$1",s:"MORGAN"},tags:["silver","us","dollars","1800s"],blurb:"The Morgan dollar — the big, handsome silver dollar of the American West."},
+  {id:7,name:"Large Cent",country:"United States",year:"1793",mint:"Philadelphia",denom:"One Cent",metal:"Copper",value:"est. $1,100",face:{k:"coin copper",g:"1¢",s:"CHAIN"},tags:["copper","us","cents","1700s"],blurb:"One of America's earliest coins, big as a half-dollar and over 200 years old."},
+  {id:8,name:"Shipwreck Gold",country:"United States",year:"1857",mint:"From the sea",denom:"Gold",metal:"Gold",value:"est. $3,200",face:{k:"coin gold",g:"SS",s:"WRECK"},tags:["gold","us","shipwreck","1800s"],blurb:"Gold recovered from the SS Central America, lost in an 1857 hurricane and raised over a century later."},
+  {id:9,name:"$1,000 Note",country:"United States",year:"1928",mint:"—",denom:"One Thousand Dollars",metal:"Paper",value:"est. $2,800",face:{k:"note ngold",g:"$1,000",s:"GOLD"},tags:["currency","us","1900s"],blurb:"A 1928 gold certificate — large-denomination U.S. currency you'd rarely see in a wallet."},
+  {id:10,name:"Confederate Issue",country:"Confederate States",year:"1864",mint:"Richmond",denom:"Note",metal:"Paper",value:"est. $140",face:{k:"note ngray",g:"CSA",s:"1864"},tags:["currency","confederate","1800s"],blurb:"Paper money issued by the Confederacy during the Civil War."},
+  {id:11,name:"$2 Note",country:"United States",year:"1953",mint:"—",denom:"Two Dollars",metal:"Paper",value:"est. $18",face:{k:"note ngreen",g:"$2",s:"LEGAL"},tags:["currency","us","1900s"],blurb:"The classic $2 bill — common but always a little special."}
+];
+let collections=[{id:1,name:"Gold pieces",coinIds:[4,5,8]}];
+let nextCoinId=100, nextColId=10;
+
+let activeTags=new Set(), view='all', currentCol=null;
+let selectMode=false, selected=new Set();
+
+/* ---------- helpers ---------- */
+function faceHTML(c){
+  if(c.img) return '<span class="face"><img src="'+c.img+'"></span>';
+  const f=c.face||{k:"coin silver",g:"?",s:""};
+  if(f.k.startsWith("note")) return '<span class="face"><span class="'+f.k+'">'+f.g+'<small>'+f.s+'</small></span></span>';
+  return '<span class="face"><span class="'+f.k+'"><span><span class="yr">'+f.g+'</span><small>'+f.s+'</small></span></span></span>';
+}
+function allTags(){const s={};coins.forEach(c=>c.tags.forEach(tg=>s[tg]=(s[tg]||0)+1));return Object.keys(s).sort((a,b)=>s[b]-s[a]);}
+function matches(){
+  const q=(document.getElementById('q').value||'').toLowerCase().trim();
+  return coins.filter(c=>{
+    for(const tg of activeTags) if(!c.tags.includes(tg)) return false;
+    if(q){const hay=(c.name+' '+c.country+' '+c.year+' '+c.mint+' '+c.tags.join(' ')).toLowerCase();if(!hay.includes(q))return false;}
+    return true;
+  });
+}
+
+/* ---------- render ---------- */
+function render(){
+  document.getElementById('apptitle').innerHTML=lang==='en'?"Eli&rsquo;s Coins":t('title');
+  document.getElementById('q').placeholder=t('search');
+  document.getElementById('tab-all').textContent=t('all');
+  document.getElementById('tab-col').textContent=t('collections');
+  document.getElementById('fab-t').textContent=t('add');
+  document.getElementById('savecol').textContent=t('save_col');
+
+  if(view==='collections'){selectMode=false;updateSelChrome();renderCollections();document.getElementById('tagwrap').style.display='none';return;}
+  document.getElementById('tagwrap').style.display='block';
+
+  // tag rail
+  const tags=allTags();
+  let rail='';
+  if(activeTags.size) rail+='<div class="chip clear" onclick="clearTags()">✕ '+t('clear')+'</div>';
+  rail+=tags.map(tg=>'<div class="chip '+(activeTags.has(tg)?'on':'')+'" onclick="toggleTag(\''+tg+'\')">'+esc(tagLabel(tg))+'</div>').join('');
+  document.getElementById('tagrail').innerHTML=rail;
+
+  const list=matches();
+  document.getElementById('count').textContent=list.length+' '+t('coins');
+  document.getElementById('savecol').style.display=(!selectMode&&(activeTags.size||document.getElementById('q').value))?'block':'none';
+  document.getElementById('selectbtn').textContent=selectMode?t('done'):t('select');
+  updateSelChrome();
+
+  document.getElementById('main').innerHTML='<div class="grid">'+(
+    list.length?list.map(coinCard).join(''):'<div class="empty">'+t('none')+'</div>'
+  )+'</div>';
+}
+function coinCard(c){
+  const check = selectMode ? '<span class="selcircle '+(selected.has(c.id)?'on':'')+'"></span>' : '';
+  const click = selectMode ? 'toggleSelect('+c.id+')' : 'openDetail('+c.id+')';
+  return '<div class="coin-card'+(selectMode&&selected.has(c.id)?' sel':'')+'" onclick="'+click+'">'+check+faceHTML(c)+
+    '<div><div class="nm">'+esc(c.name)+'</div><div class="mt">'+ltr([c.mint,c.year].filter(x=>x&&x!=='—').join(' · '))+'</div>'+
+    '<div class="tg">'+c.tags.slice(0,4).map(tg=>'<span>'+esc(tagLabel(tg))+'</span>').join('')+'</div></div>'+
+    '<div class="vl">'+ltr(c.value||'')+'</div></div>';
+}
+function renderCollections(){
+  document.getElementById('count').textContent='';
+  let html='<div class="albums">';
+  collections.forEach(col=>{
+    const cs=coins.filter(c=>col.coinIds.includes(c.id)).slice(0,4);
+    const cover=cs.length?cs.map(c=>'<div class="cell">'+faceHTML(c)+'</div>').join(''):'<div class="cell" style="grid-column:1/3;grid-row:1/3;color:var(--soft);font-size:30px">♢</div>';
+    html+='<div class="album" onclick="openCollection('+col.id+')"><div class="cover">'+cover+'</div>'+
+      '<div class="an">'+esc(col.name)+'</div><div class="ac">'+col.coinIds.length+' '+t('coins')+'</div></div>';
+  });
+  html+='<div class="album newcol" onclick="newAlbum()"><div class="cover">＋</div><div class="an">'+t('newalbum')+'</div><div class="ac">&nbsp;</div></div>';
+  html+='</div>';
+  document.getElementById('main').innerHTML=html;
+}
+function openCollection(id){
+  const col=collections.find(c=>c.id===id);if(!col)return;currentCol=id;selectMode=false;
+  view='all';document.getElementById('tab-all').classList.remove('on');document.getElementById('tab-col').classList.add('on');
+  document.getElementById('tagwrap').style.display='block';
+  document.getElementById('tagrail').innerHTML='<div class="chip clear" onclick="setView(\'collections\')">‹ '+esc(col.name)+'</div>';
+  document.getElementById('count').textContent=col.coinIds.length+' '+t('coins');
+  document.getElementById('savecol').style.display='none';
+  updateSelChrome();
+  const list=coins.filter(c=>col.coinIds.includes(c.id));
+  const addBtn='<button class="addcoins" onclick="openAddCoinsTo('+id+')">＋ '+t('addcoins')+'</button>';
+  document.getElementById('main').innerHTML=addBtn+'<div class="grid">'+(list.length?list.map(coinCard).join(''):'<div class="empty">'+t('tapadd')+'</div>')+'</div>';
+}
+
+function toggleTag(tg){activeTags.has(tg)?activeTags.delete(tg):activeTags.add(tg);render();}
+function clearTags(){activeTags.clear();render();}
+function setView(v){view=v;document.getElementById('tab-all').classList.toggle('on',v==='all');document.getElementById('tab-col').classList.toggle('on',v==='collections');render();}
+function setLang(l){lang=l;document.documentElement.dir=(l==='he')?'rtl':'ltr';document.getElementById('l-en').classList.toggle('on',l==='en');document.getElementById('l-he').classList.toggle('on',l==='he');render();}
+const esc=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* ---------- save-as-collection ---------- */
+function openSaveCollection(){
+  const list=matches();const ids=list.map(c=>c.id);
+  showSheet('<button class="x" onclick="closeModal()">×</button><h3>'+t('save_col').replace('✦ ','')+'</h3>'+
+    '<p style="color:var(--soft);font-size:13px;margin:4px 0 12px">'+list.length+' '+t('coins')+'</p>'+
+    '<div class="field"><input id="colname" placeholder="'+t('newcol')+'"></div>'+
+    '<div class="row2"><button class="ghost" onclick="closeModal()">'+t('discard')+'</button>'+
+    '<button class="primary" onclick="createCollection(['+ids.join(',')+'])">'+t('create')+'</button></div>');
+  setTimeout(()=>document.getElementById('colname').focus(),50);
+}
+function createCollection(ids){
+  const name=(document.getElementById('colname').value||'').trim();if(!name)return;
+  collections.push({id:nextColId++,name,coinIds:ids});closeModal();setView('collections');
+}
+
+/* ---------- detail / edit ---------- */
+let editing=null;
+function openDetail(id){
+  const c=coins.find(x=>x.id===id);if(!c)return;editing=c;
+  const colOpts=collections.map(col=>'<option value="'+col.id+'">'+esc(col.name)+'</option>').join('');
+  showSheet('<button class="x" onclick="closeModal()">×</button>'+
+    '<div class="preview">'+faceHTML(c)+'<div><h3>'+esc(c.name)+'</h3><div style="color:var(--soft);font-size:13px">'+ltr([c.country,c.year].filter(Boolean).join(' · '))+'</div></div></div>'+
+    '<div class="blurb" id="d-blurb">'+esc(c.blurb||'')+'</div>'+
+    field('Name','d-name',c.name)+
+    grid2(field('Country','d-country',c.country)+field('Year','d-year',c.year))+
+    grid2(field('Mint / Place','d-mint',c.mint)+field('Denomination','d-denom',c.denom))+
+    grid2(field('Metal','d-metal',c.metal)+field('Est. value','d-value',c.value))+
+    '<div class="field"><label>'+t('tags')+'</label><div class="tagedit" id="d-tags"></div></div>'+
+    '<div class="selrow"><select id="d-addcol"><option value="">'+t('addto')+'</option>'+colOpts+'</select><button class="ghost" style="flex:none;border-radius:9px;padding:10px 14px" onclick="addToCol()">+</button></div>'+
+    '<div class="row2"><button class="ghost" onclick="deleteCoin('+c.id+')">'+t('del')+'</button>'+
+    '<button class="primary" onclick="saveCoin('+c.id+')">'+t('save')+'</button></div>');
+  renderTagEditor(c.tags);
+  showBlurb(c);
+}
+function field(label,id,val){return '<div class="field"><label>'+label+'</label><input id="'+id+'" dir="ltr" value="'+esc(val)+'"></div>';}
+function grid2(inner){return '<div style="display:flex;gap:10px">'+inner.replace(/class="field"/g,'class="field" style="flex:1"')+'</div>';}
+let tagBuf=[];
+function renderTagEditor(tags){
+  tagBuf=[...tags];
+  const box=document.getElementById('d-tags');
+  box.innerHTML=tagBuf.map((tg,i)=>'<span class="t">'+esc(tagLabel(tg))+'<b onclick="rmTag('+i+')">×</b></span>').join('')+
+    '<input id="d-newtag" placeholder="'+t('addtag')+'" onkeydown="if(event.key===\'Enter\'){addTag();event.preventDefault();}">';
+}
+function rmTag(i){tagBuf.splice(i,1);document.getElementById('d-tags').innerHTML=tagBuf.map((tg,j)=>'<span class="t">'+esc(tagLabel(tg))+'<b onclick="rmTag('+j+')">×</b></span>').join('')+'<input id="d-newtag" placeholder="'+t('addtag')+'" onkeydown="if(event.key===\'Enter\'){addTag();event.preventDefault();}">';document.getElementById('d-newtag').focus();}
+function addTag(){const v=(document.getElementById('d-newtag').value||'').toLowerCase().trim();if(v&&!tagBuf.includes(v)){tagBuf.push(v);}renderTagEditor(tagBuf);document.getElementById('d-newtag').focus();}
+function saveCoin(id){
+  const c=coins.find(x=>x.id===id);
+  c.name=val('d-name');c.country=val('d-country');c.year=val('d-year');c.mint=val('d-mint');
+  c.denom=val('d-denom');c.metal=val('d-metal');c.value=val('d-value');c.tags=[...tagBuf];
+  closeModal();render();
+}
+function deleteCoin(id){coins=coins.filter(x=>x.id!==id);collections.forEach(col=>col.coinIds=col.coinIds.filter(x=>x!==id));closeModal();render();}
+function addToCol(){const v=document.getElementById('d-addcol').value;if(!v||!editing)return;const col=collections.find(c=>c.id==v);if(col&&!col.coinIds.includes(editing.id)){col.coinIds.push(editing.id);}document.getElementById('d-addcol').value='';}
+const val=id=>document.getElementById(id).value;
+
+/* ---------- add a coin (AI + manual) ---------- */
+function openAdd(){
+  showSheet('<button class="x" onclick="closeModal()">×</button><h3>'+t('add')+'</h3>'+
+    '<label class="addbtn" onclick="document.getElementById(\'file\').click()"><span class="p">＋</span><span class="s">'+t('take')+'</span></label>'+
+    '<div id="addwork"></div>'+
+    '<p style="text-align:center;color:var(--soft);font-size:12px;font-style:italic">'+t('manual')+'</p>'+
+    '<div class="row2"><button class="primary" onclick="manualDraft()">✎ '+t('add')+'</button></div>');
+}
+let pendingImg=null;
+document.getElementById('file').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  document.getElementById('addwork').innerHTML='<div class="status">'+t('reading')+'</div>';
+  try{
+    const prepped=await prepImage(f);pendingImg=prepped.dataUrl;
+    const info=await identify(prepped.b64,prepped.mime);
+    showDraft(info);
+  }catch(err){document.getElementById('addwork').innerHTML='<div class="err">'+t('err')+' ('+(err.message||err)+')</div>';}
+  e.target.value='';
+});
+function prepImage(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const o=r.result,m=(o.match(/^data:(.*?);/)||[])[1]||'image/jpeg';const fb=()=>res({dataUrl:o,b64:o.split(',')[1],mime:m});const img=new Image();img.onload=()=>{try{const mx=1100,s=Math.min(1,mx/Math.max(img.width,img.height)),w=Math.max(1,img.width*s|0),h=Math.max(1,img.height*s|0),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);const d=cv.toDataURL('image/jpeg',.85);res({dataUrl:d,b64:d.split(',')[1],mime:'image/jpeg'});}catch(e){fb();}};img.onerror=fb;img.src=o;};r.onerror=()=>rej(new Error('open failed'));r.readAsDataURL(file);});}
+async function identify(b64,mime){
+  const prompt=`You are a friendly numismatic expert cataloging a coin or banknote from a photo. Identify it as best you can; if worn/unclear, give your best guess and say so gently. Respond ONLY with JSON, no markdown:
+{"name":"common name","country":"","year":"e.g. 1881 or 'c. 440 BC'","mint":"mint/place or mark, else ''","denomination":"","metal":"","est_value":"rough range like '$30–$80', ~ if unsure","tags":["3-6 short lowercase english tags like 'gold','silver','us','roman','1800s','graded','dollar'"],"blurb":"2-3 warm plain sentences a non-expert would enjoy; mention if the photo made anything hard to read"}`;
+  const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:mime||"image/jpeg",data:b64}},{type:"text",text:prompt}]}]})});
+  if(!resp.ok)throw new Error('server '+resp.status);
+  const data=await resp.json();
+  if(!data||!Array.isArray(data.content))throw new Error('no reply');
+  let txt=data.content.filter(i=>i.type==='text').map(i=>i.text).join(' ').trim();
+  const m=txt.match(/\{[\s\S]*\}/);if(!m)throw new Error('unclear');
+  return JSON.parse(m[0]);
+}
+function showDraft(info){
+  pendingDraft={name:info.name||'',country:info.country||'',year:info.year||'',mint:info.mint||'',denom:info.denomination||'',metal:info.metal||'',value:info.est_value||'',blurb:info.blurb||'',tags:Array.isArray(info.tags)?info.tags.map(x=>(''+x).toLowerCase()):[]};
+  draftSheet();
+}
+function manualDraft(){pendingImg=null;pendingDraft={name:'',country:'',year:'',mint:'',denom:'',metal:'',value:'',blurb:'',tags:[]};draftSheet();}
+let pendingDraft=null;
+function draftSheet(){
+  const d=pendingDraft;
+  showSheet('<button class="x" onclick="closeModal()">×</button><h3>'+t('add')+'</h3>'+
+    (pendingImg?'<div class="preview"><span class="face"><img src="'+pendingImg+'"></span><div class="blurb" style="flex:1">'+esc(d.blurb)+'</div></div>':'')+
+    field('Name','a-name',d.name)+
+    grid2(field('Country','a-country',d.country)+field('Year','a-year',d.year))+
+    grid2(field('Mint / Place','a-mint',d.mint)+field('Denomination','a-denom',d.denom))+
+    grid2(field('Metal','a-metal',d.metal)+field('Est. value','a-value',d.value))+
+    '<div class="field"><label>'+t('tags')+'</label><div class="tagedit" id="a-tags"></div></div>'+
+    '<div class="row2"><button class="ghost" onclick="closeModal()">'+t('discard')+'</button><button class="primary" onclick="commitAdd()">'+t('save')+'</button></div>');
+  renderAddTags();
+}
+function renderAddTags(){const box=document.getElementById('a-tags');box.innerHTML=pendingDraft.tags.map((tg,i)=>'<span class="t">'+esc(tagLabel(tg))+'<b onclick="rmAddTag('+i+')">×</b></span>').join('')+'<input id="a-newtag" placeholder="'+t('addtag')+'" onkeydown="if(event.key===\'Enter\'){addAddTag();event.preventDefault();}">';}
+function rmAddTag(i){pendingDraft.tags.splice(i,1);renderAddTags();}
+function addAddTag(){const v=(document.getElementById('a-newtag').value||'').toLowerCase().trim();if(v&&!pendingDraft.tags.includes(v))pendingDraft.tags.push(v);renderAddTags();document.getElementById('a-newtag').focus();}
+function commitAdd(){
+  const metal=(val('a-metal')||'').toLowerCase();
+  let face;
+  if(pendingImg) face=null;
+  else{const k=metal.includes('gold')?'coin gold':metal.includes('copper')||metal.includes('bronze')?'coin copper':metal.includes('paper')?'note ngreen':'coin silver';face={k,g:(val('a-value')||'$').slice(0,4),s:''};}
+  coins.unshift({id:nextCoinId++,img:pendingImg||null,face,name:val('a-name')||'Untitled',country:val('a-country'),year:val('a-year'),mint:val('a-mint'),denom:val('a-denom'),metal:val('a-metal'),value:val('a-value'),blurb:pendingDraft.blurb,tags:[...pendingDraft.tags]});
+  pendingImg=null;pendingDraft=null;closeModal();setView('all');
+}
+
+/* ---------- iOS-style multi-select → add to collection ---------- */
+function updateSelChrome(){
+  const fab=document.querySelector('.fab'), bar=document.getElementById('selbar');
+  if(selectMode){
+    fab.style.display='none'; bar.style.display='flex';
+    bar.innerHTML='<button class="selall" onclick="selectAllShown()">'+(allShownSelected()?t('deselectall'):t('selectall'))+'</button>'+
+      '<span>'+selected.size+' '+t('selected')+'</span>'+
+      '<button onclick="openAddSelected()" '+(selected.size?'':'disabled')+'>'+t('addsel')+'</button>';
+  }else{ fab.style.display='flex'; bar.style.display='none'; }
+}
+function allShownSelected(){const ids=matches().map(c=>c.id);return ids.length>0&&ids.every(id=>selected.has(id));}
+function selectAllShown(){const ids=matches().map(c=>c.id);if(allShownSelected()){ids.forEach(id=>selected.delete(id));}else{ids.forEach(id=>selected.add(id));}render();}
+function toggleSelectMode(){selectMode=!selectMode;if(!selectMode)selected.clear();render();}
+function toggleSelect(id){selected.has(id)?selected.delete(id):selected.add(id);render();}
+function openAddSelected(){
+  if(!selected.size)return;
+  const rows=collections.map(col=>'<div class="col-card" style="margin:0 0 8px" onclick="addSelTo('+col.id+')"><div><div class="cn">'+esc(col.name)+'</div><div class="cc">'+col.coinIds.length+' '+t('coins')+'</div></div><div style="font-size:24px;color:var(--blue)">＋</div></div>').join('');
+  showSheet('<button class="x" onclick="closeModal()">×</button><h3>'+t('addsel')+'</h3>'+
+    '<p style="color:var(--soft);font-size:13px;margin:4px 0 12px">'+selected.size+' '+t('selected')+'</p>'+
+    rows+
+    '<div class="field" style="margin-top:12px"><label>'+t('newcol')+'</label><input id="newcolsel" placeholder="'+t('newcol')+'"></div>'+
+    '<div class="row2"><button class="ghost" onclick="closeModal()">'+t('discard')+'</button><button class="primary" onclick="createColFromSel()">'+t('create')+'</button></div>');
+}
+function addSelTo(colId){const col=collections.find(c=>c.id===colId);if(col){[...selected].forEach(id=>{if(!col.coinIds.includes(id))col.coinIds.push(id);});}finishSel(false);}
+function createColFromSel(){const name=(document.getElementById('newcolsel').value||'').trim();if(!name)return;collections.push({id:nextColId++,name,coinIds:[...selected]});finishSel(true);}
+function finishSel(goCol){closeModal();selectMode=false;selected.clear();if(goCol){setView('collections');}else{render();}}
+
+/* ---------- albums: new + easy coin picker ---------- */
+function newAlbum(){
+  showSheet('<button class="x" onclick="closeModal()">×</button><h3>'+t('newalbum')+'</h3>'+
+    '<div class="field"><input id="newalbumname" placeholder="'+t('newcol')+'"></div>'+
+    '<div class="row2"><button class="ghost" onclick="closeModal()">'+t('discard')+'</button><button class="primary" onclick="createAlbum()">'+t('create')+'</button></div>');
+  setTimeout(()=>{const e=document.getElementById('newalbumname');if(e)e.focus();},60);
+}
+function createAlbum(){const name=(document.getElementById('newalbumname').value||'').trim();if(!name)return;const id=nextColId++;collections.push({id,name,coinIds:[]});closeModal();openAddCoinsTo(id);}
+let pickSet=new Set();
+function openAddCoinsTo(colId){
+  const col=collections.find(c=>c.id===colId);if(!col)return;pickSet=new Set(col.coinIds);
+  const rows=coins.map(c=>'<div class="pickrow" onclick="togglePick('+c.id+')"><span class="selcircle '+(pickSet.has(c.id)?'on':'')+'" id="pk-'+c.id+'"></span>'+faceHTML(c)+
+    '<div><div class="pn">'+esc(c.name)+'</div><div class="pm">'+ltr([c.mint,c.year].filter(x=>x&&x!=='—').join(' · '))+'</div></div></div>').join('');
+  showSheet('<button class="x" onclick="closeModal()">×</button><h3>'+esc(col.name)+'</h3>'+
+    '<p style="color:var(--soft);font-size:14px;margin:2px 0 12px">'+t('tapadd')+'</p>'+rows+
+    '<div class="row2"><button class="primary" onclick="savePicks('+colId+')">'+t('done')+'</button></div>');
+}
+function togglePick(id){if(pickSet.has(id))pickSet.delete(id);else pickSet.add(id);const el=document.getElementById('pk-'+id);if(el)el.classList.toggle('on');}
+function savePicks(colId){const col=collections.find(c=>c.id===colId);if(col)col.coinIds=[...pickSet];closeModal();openCollection(colId);}
+
+/* ---------- modal plumbing ---------- */
+function showSheet(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('show');}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+render();
+</script>
+</body>
+</html>
