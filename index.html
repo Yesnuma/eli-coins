@@ -8,9 +8,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, getDocs, getDoc, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyAoKokKZzCGfOHEJAQ0dJzzqkhnN_AtYdQ",
     authDomain: "eli-coins.firebaseapp.com",
@@ -21,7 +23,15 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
+  setPersistence(auth, browserLocalPersistence).catch(()=>{});
   window.FB = { db, collection, getDocs, getDoc, setDoc, deleteDoc, doc };
+  window.AUTH = {
+    auth,
+    signIn:(email,pw)=>signInWithEmailAndPassword(auth,email,pw),
+    signOut:()=>signOut(auth),
+    onChange:(cb)=>onAuthStateChanged(auth,cb)
+  };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 <style>
@@ -177,6 +187,11 @@
   /* in-album add button + coin picker */
   .addcoins{display:block;width:calc(100% - 32px);margin:6px 16px 14px;border:2px dashed var(--blue);color:var(--blue);
     background:rgba(6,0,255,.05);border-radius:16px;padding:17px;font-size:18px;font-weight:700;cursor:pointer;text-align:center;}
+  .dlbtn{display:block;width:calc(100% - 32px);margin:-6px 16px 14px;border:2px solid var(--pink);color:var(--pink);
+    background:#fff;border-radius:16px;padding:15px;font-size:17px;font-weight:700;cursor:pointer;text-align:center;}
+  .dlbtn:disabled{opacity:.5;}
+  .existbtn{display:block;width:calc(100% - 32px);margin:-6px 16px 14px;border:1px solid var(--line);color:var(--soft);
+    background:var(--card);border-radius:16px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;text-align:center;}
   .pickrow{display:flex;align-items:center;gap:16px;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
   .pickrow .pn{font-size:18px;font-weight:600;}
   .pickrow .pm{font-size:14px;color:var(--soft);}
@@ -192,6 +207,15 @@
     text-shadow:0 1px 4px rgba(0,0,0,.6);animation:pulse 1.8s ease-in-out infinite;pointer-events:none;}
   @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
   #splash.gone{opacity:0;pointer-events:none;}
+  #splash.shake{animation:shk .4s;}
+  @keyframes shk{0%,100%{transform:none}25%{transform:translateX(-9px)}75%{transform:translateX(9px)}}
+  .gate{position:absolute;bottom:max(38px,env(safe-area-inset-bottom));left:0;right:0;display:none;
+    flex-direction:column;align-items:center;gap:11px;padding:0 24px;}
+  .gate input{width:min(320px,82%);padding:14px 16px;border-radius:13px;border:none;font-size:17px;text-align:center;
+    background:rgba(255,255,255,.96);box-shadow:0 4px 14px rgba(0,0,0,.3);}
+  .gate button{background:var(--blue);color:#fff;border:none;border-radius:24px;padding:13px 30px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3);}
+  .pwerr{color:#fff;background:rgba(255,0,122,.92);padding:5px 13px;border-radius:11px;font-size:13px;font-weight:600;}
+  .pwerr:empty{display:none;}
 
   /* ===== photo lightbox (tap a coin photo to enlarge) ===== */
   .zoomable{position:relative;cursor:zoom-in;}
@@ -236,17 +260,26 @@
 </head>
 <body>
 <div id="lightbox"><button class="lx" onclick="closePhoto()">×</button><img id="lightboximg" alt=""></div>
-<div id="splash" onclick="enterSite()">
+<div id="splash">
   <img src="cover.jpg" alt="The Coin Collector Times">
-  <div class="tap">tap to enter ›</div>
+  <div class="tap" id="taphint" style="display:none">tap to enter ›</div>
+  <div class="gate" id="gate">
+    <input id="pw-email" type="email" inputmode="email" autocapitalize="off" autocomplete="username" placeholder="Email">
+    <input id="pw" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')tryEnter()">
+    <button onclick="tryEnter()">Enter ›</button>
+    <div class="pwerr" id="pwerr"></div>
+  </div>
 </div>
 <div class="app">
   <div class="top">
     <div class="titlerow">
       <div class="title" id="apptitle">Eli&rsquo;s Coins</div>
-      <div class="lang">
-        <button id="l-en" class="on" onclick="setLang('en')">EN</button>
-        <button id="l-he" onclick="setLang('he')">עב</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="lang">
+          <button id="l-en" class="on" onclick="setLang('en')">EN</button>
+          <button id="l-he" onclick="setLang('he')">עב</button>
+        </div>
+        <button onclick="logout()" title="Sign out" style="border:1px solid var(--line);background:var(--card);border-radius:50%;width:38px;height:38px;font-size:16px;cursor:pointer;line-height:1">🔒</button>
       </div>
     </div>
     <div class="worth" id="worth"></div>
@@ -297,7 +330,7 @@ const T={
     suggested:"Suggested:",manual:"or type it in yourself",err:"Couldn’t read that one",
     select:"Select",selected:"selected",addsel:"Add to Collection",done:"Done",
     newalbum:"New album",addcoins:"Add coins",tapadd:"Tap coins to add or remove",selectall:"Select all",deselectall:"Deselect all",worth:"Collection value",
-    catal:"Cataloging",added:"Added",skipped:"skipped",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange"},
+    catal:"Cataloging",added:"Added",skipped:"skipped",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange",download:"Download photos",nophotos:"No photos to download in this album yet.",dragcol:"Hold and drag to reorder albums",addinto:"Adding to",addexisting:"Or choose from coins you already have"},
   he:{title:"המטבעות של אלי",search:"חיפוש",all:"כל המטבעות",collections:"אוספים",add:"הוספת מטבע",
     save_col:"✦ צור אוסף מאלה",clear:"ניקוי",coins:"מטבעות",take:"צילום או בחירת תמונה",
     reading:"קורא את המטבע…",country:"מדינה",year:"שנה",mint:"מטבעה / מקום",denom:"ערך נקוב",
@@ -307,7 +340,7 @@ const T={
     suggested:"מוצע:",manual:"או הקלידו בעצמכם",err:"לא הצלחתי לקרוא את התמונה",
     select:"בחירה",selected:"נבחרו",addsel:"הוספה לאוסף",done:"סיום",
     newalbum:"אוסף חדש",addcoins:"הוספת מטבעות",tapadd:"הקישו על מטבעות להוספה או הסרה",selectall:"בחר הכול",deselectall:"בטל הכול",worth:"שווי האוסף",
-    catal:"מקטלג",added:"נוספו",skipped:"דולגו",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש"}
+    catal:"מקטלג",added:"נוספו",skipped:"דולגו",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש",download:"הורדת תמונות",nophotos:"אין עדיין תמונות להורדה באוסף הזה.",dragcol:"החזיקו וגררו כדי לסדר אוספים",addinto:"מוסיף אל",addexisting:"או בחרו ממטבעות שכבר יש לכם"}
 };
 let lang='en';
 const t=k=>T[lang][k];
@@ -330,6 +363,7 @@ function showBlurb(c){
 /* ---------- data (loads from / saves to Firebase) ---------- */
 let coins=[];
 let collections=[];
+let meta={coinOrder:[],colOrder:[]};
 let nextCoinId=100, nextColId=10;
 
 let activeTags=new Set(), view='all', currentCol=null, displayMode='list';
@@ -339,24 +373,22 @@ let selectMode=false, selected=new Set();
 async function loadFromFirestore(){
   if(!window.FB)return;
   try{
-    const {db,collection,getDocs,getDoc,doc}=window.FB;
+    const {db,collection,getDocs}=window.FB;
     const cs=await getDocs(collection(db,'coins'));
     coins=cs.docs.map(d=>d.data()).sort((a,b)=>(b.created||0)-(a.created||0));
     const cols=await getDocs(collection(db,'collections'));
-    collections=cols.docs.map(d=>d.data());
+    collections=[];meta={coinOrder:[],colOrder:[]};
+    cols.docs.forEach(d=>{ if(d.id==='__meta__'){meta=Object.assign({coinOrder:[],colOrder:[]},d.data());} else collections.push(d.data()); });
     nextCoinId=Math.max(99,...coins.map(c=>+c.id||0))+1;
     nextColId=Math.max(9,...collections.map(c=>+c.id||0))+1;
-    // apply saved manual order, if any
-    try{
-      const od=await getDoc(doc(db,'meta','order'));
-      if(od.exists()&&Array.isArray(od.data().ids)){
-        const pos={};od.data().ids.forEach((id,i)=>pos[id]=i);
-        coins.sort((a,b)=>((pos[a.id]??9e9)-(pos[b.id]??9e9)));
-      }
-    }catch(_){}
+    // apply saved manual orders
+    if(Array.isArray(meta.coinOrder)&&meta.coinOrder.length){const pos={};meta.coinOrder.forEach((id,i)=>pos[id]=i);coins.sort((a,b)=>((pos[a.id]??9e9)-(pos[b.id]??9e9)));}
+    if(Array.isArray(meta.colOrder)&&meta.colOrder.length){const pos={};meta.colOrder.forEach((id,i)=>pos[id]=i);collections.sort((a,b)=>((pos[a.id]??9e9)-(pos[b.id]??9e9)));}
   }catch(e){console.error('Firestore load failed',e);}
 }
-function saveOrder(){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'meta','order'),{ids:coins.map(c=>c.id)}).catch(e=>console.error('save order',e));}
+function saveMeta(){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'collections','__meta__'),meta).catch(e=>console.error('save meta',e));}
+function saveOrder(){meta.coinOrder=coins.map(c=>c.id);saveMeta();}
+function saveColOrder(){meta.colOrder=collections.map(c=>c.id);saveMeta();}
 function persistCoin(c){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'coins',String(c.id)),c).catch(e=>console.error('save coin',e));}
 function removeCoinDoc(id){if(!window.FB)return;const{db,deleteDoc,doc}=window.FB;deleteDoc(doc(db,'coins',String(id))).catch(e=>console.error('del coin',e));}
 function persistCol(col){if(!window.FB)return;const{db,setDoc,doc}=window.FB;setDoc(doc(db,'collections',String(col.id)),col).catch(e=>console.error('save col',e));}
@@ -479,34 +511,82 @@ function coinCard(c){
 }
 function renderCollections(){
   document.getElementById('count').textContent='';
-  let html='<div class="albums">';
+  let html=(collections.length>1?'<div class="rehint">'+t('dragcol')+'</div>':'')+'<div class="albums" id="albumgrid">';
   collections.forEach(col=>{
     const cs=coins.filter(c=>col.coinIds.includes(c.id)).slice(0,4);
     const cover=cs.length?cs.map(c=>'<div class="cell">'+faceHTML(c)+'</div>').join(''):'<div class="cell" style="grid-column:1/3;grid-row:1/3;color:var(--soft);font-size:30px">♢</div>';
-    html+='<div class="album" onclick="openCollection('+col.id+')"><div class="cover">'+cover+'</div>'+
+    html+='<div class="album" data-id="'+col.id+'" onclick="openCollection('+col.id+')"><div class="cover">'+cover+'</div>'+
       '<div class="an">'+esc(col.name)+'</div><div class="ac">'+col.coinIds.length+' '+t('coins')+'</div></div>';
   });
-  html+='<div class="album newcol" onclick="newAlbum()"><div class="cover">＋</div><div class="an">'+t('newalbum')+'</div><div class="ac">&nbsp;</div></div>';
   html+='</div>';
+  html+='<div class="albums" style="padding-top:0"><div class="album newcol" onclick="newAlbum()"><div class="cover">＋</div><div class="an">'+t('newalbum')+'</div><div class="ac">&nbsp;</div></div></div>';
   document.getElementById('main').innerHTML=html;
+  initAlbumSort();
+}
+let _albumSort=null;
+function initAlbumSort(){
+  const grid=document.getElementById('albumgrid');
+  if(!grid||!window.Sortable||collections.length<2)return;
+  if(_albumSort){try{_albumSort.destroy();}catch(_){ }_albumSort=null;}
+  _albumSort=window.Sortable.create(grid,{animation:150,delay:220,delayOnTouchOnly:true,touchStartThreshold:6,
+    onEnd:()=>{
+      const ids=[...grid.children].map(el=>+el.dataset.id).filter(x=>!isNaN(x));
+      const pos={};ids.forEach((id,i)=>pos[id]=i);
+      collections.sort((a,b)=>((pos[a.id]??9e9)-(pos[b.id]??9e9)));
+      saveColOrder();
+    }
+  });
 }
 function openCollection(id){
   const col=collections.find(c=>c.id===id);if(!col)return;currentCol=id;selectMode=false;
   view='all';document.getElementById('tab-all').classList.remove('on');document.getElementById('tab-col').classList.add('on');
   document.getElementById('tagwrap').style.display='block';
-  document.getElementById('tagrail').innerHTML='<div class="chip clear" onclick="setView(\'collections\')">‹ '+esc(col.name)+'</div>';
+  document.getElementById('tagrail').innerHTML='<div class="chip clear" onclick="exitCollection()">‹ '+esc(col.name)+'</div>';
   document.getElementById('count').textContent=col.coinIds.length+' '+t('coins');
   document.getElementById('savecol').style.display='none';
+  document.getElementById('selectbtn').style.display='none';
+  document.getElementById('vtoggle').style.display='flex';
+  document.getElementById('v-list').classList.toggle('on',displayMode==='list');
+  document.getElementById('v-photo').classList.toggle('on',displayMode==='photo');
   updateSelChrome();
   const list=coins.filter(c=>col.coinIds.includes(c.id));
-  const addBtn='<button class="addcoins" onclick="openAddCoinsTo('+id+')">＋ '+t('addcoins')+'</button>';
-  document.getElementById('main').innerHTML=addBtn+'<div class="grid">'+(list.length?list.map(coinCard).join(''):'<div class="empty">'+t('tapadd')+'</div>')+'</div>';
+  const hasPhotos=list.some(c=>c.img);
+  const upBtn='<button class="addcoins" onclick="openAdd('+id+')">＋ '+t('add')+'</button>';
+  const exBtn='<button class="existbtn" onclick="openAddCoinsTo('+id+')">'+t('addexisting')+'</button>';
+  const dlBtn=hasPhotos?'<button class="dlbtn" onclick="downloadCollection('+id+')">⬇ '+t('download')+'</button>':'';
+  let body;
+  if(displayMode==='photo'){
+    const tiles=list.map(c=>{const inner=c.img?'<img src="'+c.img+'">':'<span class="drawn">'+faceHTML(c)+'</span>';return '<div class="ptile" data-id="'+c.id+'" onclick="openDetail('+c.id+')">'+inner+'</div>';}).join('');
+    body=list.length?'<div class="photos">'+tiles+'</div>':'<div class="empty">'+t('tapadd')+'</div>';
+  }else{
+    body='<div class="grid">'+(list.length?list.map(coinCard).join(''):'<div class="empty">'+t('tapadd')+'</div>')+'</div>';
+  }
+  document.getElementById('main').innerHTML=upBtn+exBtn+dlBtn+body;
+}
+function exitCollection(){currentCol=null;document.getElementById('vtoggle').style.display='none';setView('collections');}
+/* download all photos in a collection as a zip */
+async function downloadCollection(id){
+  const col=collections.find(c=>c.id===id);if(!col)return;
+  const pics=coins.filter(c=>col.coinIds.includes(c.id)&&c.img);
+  if(!pics.length){alert(t('nophotos'));return;}
+  if(!window.JSZip){alert('Zip tool still loading — try again in a moment.');return;}
+  const btn=document.querySelector('.dlbtn');if(btn){btn.textContent='…';btn.disabled=true;}
+  try{
+    const zip=new window.JSZip();
+    pics.forEach((c,i)=>{const b64=(c.img.split(',')[1])||'';const safe=(c.name||('coin'+c.id)).replace(/[^a-z0-9]+/gi,'_').slice(0,40);zip.file(String(i+1).padStart(2,'0')+'_'+safe+'.jpg',b64,{base64:true});});
+    const blob=await zip.generateAsync({type:'blob'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=(col.name||'collection').replace(/[^a-z0-9]+/gi,'_')+'.zip';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+  }catch(e){alert('Download failed: '+(e.message||e));}
+  if(btn){btn.textContent='⬇ '+t('download');btn.disabled=false;}
 }
 
 function toggleTag(tg){activeTags.has(tg)?activeTags.delete(tg):activeTags.add(tg);render();}
 function clearTags(){activeTags.clear();render();}
-function setView(v){view=v;document.getElementById('tab-all').classList.toggle('on',v==='all');document.getElementById('tab-col').classList.toggle('on',v==='collections');render();}
-function setDisplay(m){displayMode=m;if(m==='photo')selectMode=false;render();}
+function setView(v){currentCol=null;view=v;document.getElementById('tab-all').classList.toggle('on',v==='all');document.getElementById('tab-col').classList.toggle('on',v==='collections');render();}
+function setDisplay(m){displayMode=m;if(m==='photo')selectMode=false;if(currentCol){openCollection(currentCol);}else{render();}}
 function setLang(l){lang=l;document.documentElement.dir=(l==='he')?'rtl':'ltr';document.getElementById('l-en').classList.toggle('on',l==='en');document.getElementById('l-he').classList.toggle('on',l==='he');render();}
 const esc=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -567,15 +647,18 @@ function addToCol(){const v=document.getElementById('d-addcol').value;if(!v||!ed
 const val=id=>document.getElementById(id).value;
 
 /* ---------- add a coin (AI + manual) ---------- */
-function openAdd(){
-  showSheet('<button class="x" onclick="closeModal()">×</button><h3>'+t('add')+'</h3>'+
+let uploadTarget=null;
+function openAdd(target){
+  uploadTarget = target||null;
+  const into = uploadTarget ? '<p style="text-align:center;color:var(--blue);font-size:13px;font-weight:600;margin:0 0 8px">'+t('addinto')+' '+esc((collections.find(c=>c.id===uploadTarget)||{}).name||'')+'</p>' : '';
+  showSheet('<button class="x" onclick="closeModal()">×</button><h3>'+t('add')+'</h3>'+into+
     '<label class="addbtn" onclick="document.getElementById(\'file\').click()"><span class="p">＋</span><span class="s">'+t('take')+'</span></label>'+
     '<p style="text-align:center;color:var(--soft);font-size:13px;margin:-4px 0 4px">'+t('bulkhint')+'</p>'+
     '<div id="addwork"></div>'+
     '<p style="text-align:center;color:var(--soft);font-size:12px;font-style:italic">'+t('manual')+'</p>'+
     '<div class="row2"><button class="primary" onclick="manualDraft()">✎ '+t('add')+'</button></div>');
 }
-let pendingImg=null;
+function attachToTarget(coinId){if(uploadTarget){const col=collections.find(c=>c.id===uploadTarget);if(col&&!col.coinIds.includes(coinId)){col.coinIds.push(coinId);persistCol(col);}}}
 document.getElementById('file').addEventListener('change',async e=>{
   const files=[...e.target.files];if(!files.length){e.target.value='';return;}
   if(files.length>1){ runBatch(files); e.target.value=''; return; }
@@ -598,7 +681,7 @@ function buildCoinFromInfo(info,img){
   let face=null;
   if(!img){const k=metal.includes('gold')?'coin gold':metal.includes('copper')||metal.includes('bronze')?'coin copper':metal.includes('paper')?'note ngreen':'coin silver';face={k,g:(d.value||'$').slice(0,4),s:''};}
   const nc={id:nextCoinId++,created:Date.now(),img:img||null,face,name:d.name||'Untitled',country:d.country,year:d.year,mint:d.mint,denom:d.denom,metal:d.metal,value:d.value,blurb:d.blurb,blurb_he:d.blurb_he,tags:[...d.tags]};
-  coins.unshift(nc);persistCoin(nc);saveOrder();return nc;
+  coins.unshift(nc);persistCoin(nc);saveOrder();attachToTarget(nc.id);return nc;
 }
 /* bulk: catalog a whole batch of photos one after another */
 let batch={running:false,done:0,failed:0,total:0};
@@ -631,7 +714,9 @@ async function runBatch(files){
     if(view==='all' && !document.getElementById('modal').classList.contains('show')) render();
   }
   batch.running=false; saveOrder(); batchChip();
-  if(view==='all' && !document.getElementById('modal').classList.contains('show')) render();
+  const tgt=uploadTarget; uploadTarget=null;
+  if(tgt){ openCollection(tgt); }
+  else if(view==='all' && !document.getElementById('modal').classList.contains('show')) render();
 }
 function prepImage(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const o=r.result,m=(o.match(/^data:(.*?);/)||[])[1]||'image/jpeg';const fb=()=>res({dataUrl:o,b64:o.split(',')[1],mime:m});const img=new Image();img.onload=()=>{try{const mx=900,s=Math.min(1,mx/Math.max(img.width,img.height)),w=Math.max(1,img.width*s|0),h=Math.max(1,img.height*s|0),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);const d=cv.toDataURL('image/jpeg',.8);res({dataUrl:d,b64:d.split(',')[1],mime:'image/jpeg'});}catch(e){fb();}};img.onerror=fb;img.src=o;};r.onerror=()=>rej(new Error('open failed'));r.readAsDataURL(file);});}
 async function identify(imageDataUrl){
@@ -698,8 +783,10 @@ function commitAdd(){
   if(pendingImg) face=null;
   else{const k=metal.includes('gold')?'coin gold':metal.includes('copper')||metal.includes('bronze')?'coin copper':metal.includes('paper')?'note ngreen':'coin silver';face={k,g:(val('a-value')||'$').slice(0,4),s:''};}
   const nc={id:nextCoinId++,created:Date.now(),img:pendingImg||null,face,name:val('a-name')||'Untitled',country:val('a-country'),year:val('a-year'),mint:val('a-mint'),denom:val('a-denom'),metal:val('a-metal'),value:val('a-value'),blurb:pendingDraft.blurb||'',blurb_he:pendingDraft.blurb_he||'',tags:[...pendingDraft.tags]};
-  coins.unshift(nc);persistCoin(nc);saveOrder();
-  pendingImg=null;pendingDraft=null;closeModal();setView('all');
+  coins.unshift(nc);persistCoin(nc);saveOrder();attachToTarget(nc.id);
+  const tgt=uploadTarget; uploadTarget=null;
+  pendingImg=null;pendingDraft=null;closeModal();
+  if(tgt){openCollection(tgt);}else{setView('all');}
 }
 
 /* ---------- iOS-style multi-select → add to collection ---------- */
@@ -765,11 +852,53 @@ document.getElementById('lightbox').addEventListener('click',e=>{
 });
 
 /* ---------- cover splash ---------- */
-function enterSite(){const s=document.getElementById('splash');if(!s)return;s.classList.add('gone');setTimeout(()=>s.remove(),500);}
+/* ====== real login (Firebase Authentication) ====== */
+let authReady=false, signedIn=false;
+function setupGate(){
+  const gate=document.getElementById('gate'),tap=document.getElementById('taphint'),sp=document.getElementById('splash');
+  if(!sp)return;
+  // wait for auth, then react to login state
+  if(window.AUTH){
+    window.AUTH.onChange(user=>{
+      authReady=true; signedIn=!!user;
+      if(user){
+        // logged in: show the cover with a simple tap-to-enter
+        gate.style.display='none'; tap.style.display='block'; sp.onclick=enterSite;
+        if(window.FB) loadFromFirestore().then(render);
+      }else{
+        // not logged in: show the login fields, lock the rest
+        gate.style.display='flex'; tap.style.display='none'; sp.onclick=null;
+        if(sp.classList.contains('gone')){sp.classList.remove('gone');document.body.appendChild(sp);} // re-show if they signed out
+      }
+    });
+  }else{
+    // auth library didn't load — fail closed (stay on cover)
+    gate.style.display='flex'; tap.style.display='none'; sp.onclick=null;
+  }
+}
+async function tryEnter(){
+  const email=(document.getElementById('pw-email').value||'').trim();
+  const pw=(document.getElementById('pw').value||'');
+  const err=document.getElementById('pwerr');
+  if(!email||!pw){err.textContent='Enter email and password';return;}
+  err.textContent='…';
+  try{
+    await window.AUTH.signIn(email,pw);
+    err.textContent='';
+    enterSite();
+  }catch(e){
+    err.textContent='Wrong email or password';
+    const sp=document.getElementById('splash');sp.classList.add('shake');setTimeout(()=>sp.classList.remove('shake'),420);
+    document.getElementById('pw').value='';
+  }
+}
+function logout(){ if(window.AUTH){window.AUTH.signOut().then(()=>location.reload());} }
+
+function enterSite(){const s=document.getElementById('splash');if(!s)return;s.classList.add('gone');setTimeout(()=>{ if(s.classList.contains('gone')) s.style.display='none'; },500);}
 
 render();
-window.addEventListener('fb-ready', ()=>loadFromFirestore().then(render));
-if(window.FB) loadFromFirestore().then(render);
+window.addEventListener('fb-ready', setupGate);
+if(window.AUTH) setupGate();
 </script>
 </body>
 </html>
