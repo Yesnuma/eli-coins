@@ -222,6 +222,21 @@
   .pwerr{color:#fff;background:rgba(255,0,122,.92);padding:5px 13px;border-radius:11px;font-size:13px;font-weight:600;}
   .pwerr:empty{display:none;}
 
+  /* ===== duplicates ===== */
+  .dupbanner{margin:0 16px 10px;background:#fff;border:1.5px solid var(--pink);color:var(--pink);
+    border-radius:13px;padding:13px 16px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;}
+  .dupgroup{border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 12px;background:var(--card);}
+  .duphead{font-family:Georgia,serif;font-weight:700;font-size:16px;margin-bottom:10px;}
+  .duprow{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;}
+  .ducell{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .duthumb{width:88px;height:88px;border-radius:10px;overflow:hidden;background:#e8e0d2;cursor:zoom-in;}
+  .duthumb img{width:100%;height:100%;object-fit:cover;}
+  .dudraw{display:flex;align-items:center;justify-content:center;width:100%;height:100%;transform:scale(.9);}
+  .dudel{border:1px solid var(--line);background:#fff;border-radius:9px;padding:5px 12px;font-size:15px;cursor:pointer;}
+  .dumerge{margin-top:12px;width:100%;background:var(--blue);color:#fff;border:none;border-radius:11px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;}
+  .photostrip{display:flex;gap:8px;overflow-x:auto;margin:4px 0 10px;}
+  .photostrip img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;flex:none;}
+
   /* ===== photo lightbox (tap a coin photo to enlarge) ===== */
   .zoomable{position:relative;cursor:zoom-in;}
   .zoomable::after{content:'⤢';position:absolute;right:-3px;bottom:-3px;background:var(--blue);color:#fff;
@@ -261,6 +276,18 @@
   .worth .lab{font-size:13px;font-weight:600;opacity:.9;text-transform:uppercase;letter-spacing:.04em;}
   .worth .amt{font-size:20px;font-weight:800;}
   .worth:empty{display:none;}
+  /* Numista fix-info button + result card */
+  .nbtn{width:100%;margin-top:12px;border:1px solid var(--blue);color:var(--blue);background:rgba(6,0,255,.05);
+    border-radius:11px;padding:13px;font-size:16px;font-weight:700;cursor:pointer;}
+  .nbtn:active{transform:translateY(1px);}
+  .ncard{border:1px solid var(--blue);border-radius:13px;padding:14px;background:#fff;margin-top:4px;}
+  .ncard .nt{font-weight:700;font-size:19px;}
+  .ncard .ns{font-size:15px;color:#4a4339;margin-top:4px;}
+  .ncard .nn{font-size:12.5px;color:var(--soft);margin-top:7px;}
+  .ncard a{font-size:14px;color:var(--blue);font-weight:600;text-decoration:none;}
+  .napply{width:100%;margin-top:12px;border-radius:11px;padding:14px;font-size:16px;font-weight:700;
+    background:var(--blue);color:#fff;border:1px solid var(--blue);cursor:pointer;}
+  .nnow{font-size:14px;color:var(--soft);margin:2px 0 10px;}
 </style>
 </head>
 <body>
@@ -336,7 +363,7 @@ const T={
     suggested:"Suggested:",manual:"or type it in yourself",err:"Couldn’t read that one",
     select:"Select",selected:"selected",addsel:"Add to Collection",done:"Done",
     newalbum:"New album",addcoins:"Add coins",tapadd:"Tap coins to add or remove",selectall:"Select all",deselectall:"Deselect all",worth:"Collection value",
-    catal:"Cataloging",added:"Added",skipped:"skipped",optimizing:"Optimizing photos",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange",download:"Download photos",nophotos:"No photos to download in this album yet.",dragcol:"Hold and drag to reorder albums",addinto:"Adding to",addexisting:"Or choose from coins you already have"},
+    catal:"Cataloging",added:"Added",skipped:"skipped",optimizing:"Optimizing photos",dups:"Possible duplicates",dupsets:"possible duplicate sets",dupshint:"Same coin front & back? Combine them. Just a repeat? Delete one.",nodups:"No likely duplicates found. 🎉",combine:"Combine into one",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange",download:"Download photos",nophotos:"No photos to download in this album yet.",dragcol:"Hold and drag to reorder albums",addinto:"Adding to",addexisting:"Or choose from coins you already have",fixinfo:"Fix info from Numista",looking:"Looking up the catalog…",nomatch:"No catalog match found. You can still edit by hand.",noreach:"Couldn’t reach the catalog",nowlabel:"Now",useit:"Use these details",notit:"Not it? Pick another:",viewnum:"View on Numista ›",back:"Back"},
   he:{title:"המטבעות של אלי",search:"חיפוש",all:"כל המטבעות",collections:"אוספים",add:"הוספת מטבע",
     save_col:"✦ צור אוסף מאלה",clear:"ניקוי",coins:"מטבעות",take:"צילום או בחירת תמונה",
     reading:"קורא את המטבע…",country:"מדינה",year:"שנה",mint:"מטבעה / מקום",denom:"ערך נקוב",
@@ -346,7 +373,7 @@ const T={
     suggested:"מוצע:",manual:"או הקלידו בעצמכם",err:"לא הצלחתי לקרוא את התמונה",
     select:"בחירה",selected:"נבחרו",addsel:"הוספה לאוסף",done:"סיום",
     newalbum:"אוסף חדש",addcoins:"הוספת מטבעות",tapadd:"הקישו על מטבעות להוספה או הסרה",selectall:"בחר הכול",deselectall:"בטל הכול",worth:"שווי האוסף",
-    catal:"מקטלג",added:"נוספו",skipped:"דולגו",optimizing:"מייעל תמונות",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש",download:"הורדת תמונות",nophotos:"אין עדיין תמונות להורדה באוסף הזה.",dragcol:"החזיקו וגררו כדי לסדר אוספים",addinto:"מוסיף אל",addexisting:"או בחרו ממטבעות שכבר יש לכם"}
+    catal:"מקטלג",added:"נוספו",skipped:"דולגו",optimizing:"מייעל תמונות",dups:"כפילויות אפשריות",dupsets:"קבוצות כפילות אפשריות",dupshint:"אותו מטבע מקדימה ומאחורה? אחדו אותם. סתם כפילות? מחקו אחת.",nodups:"לא נמצאו כפילויות. 🎉",combine:"איחוד לאחד",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש",download:"הורדת תמונות",nophotos:"אין עדיין תמונות להורדה באוסף הזה.",dragcol:"החזיקו וגררו כדי לסדר אוספים",addinto:"מוסיף אל",addexisting:"או בחרו ממטבעות שכבר יש לכם",fixinfo:"תיקון פרטים מ-Numista",looking:"מחפש בקטלוג…",nomatch:"לא נמצאה התאמה בקטלוג. אפשר לערוך ידנית.",noreach:"לא הצלחתי להתחבר לקטלוג",nowlabel:"עכשיו",useit:"השתמש בפרטים אלה",notit:"לא זה? בחרו אחר:",viewnum:"פתח ב-Numista ›",back:"חזרה"}
 };
 let lang='en';
 const t=k=>T[lang][k];
@@ -397,7 +424,8 @@ function saveOrder(){meta.coinOrder=coins.map(c=>c.id);saveMeta();}
 function saveColOrder(){meta.colOrder=collections.map(c=>c.id);saveMeta();}
 function persistCoin(c){if(!window.FB)return;const{db,setDoc,doc}=window.FB;const p=Object.assign({},c);if(p.imgUrl){delete p.img;}/* once uploaded to Storage, never store base64 */ setDoc(doc(db,'coins',String(c.id)),p).catch(e=>console.error('save coin',e));}
 /* the photo a coin should show: Storage URL if uploaded, else in-memory/base64 */
-function coinPhoto(c){return c.imgUrl||c.img||'';}
+function coinPhoto(c){return c.imgUrl||c.img||(c.photos&&c.photos[0])||'';}
+function coinPhotos(c){const arr=(c.photos&&c.photos.length)?c.photos.slice():[coinPhoto(c)];return arr.filter(Boolean);}
 /* one-time: move existing in-database photos to Storage, safely (upload first, then slim the record) */
 async function migratePhotosIfNeeded(){
   if(batch.running) return;
@@ -625,12 +653,14 @@ function openDetail(id){
   showSheet('<button class="x" onclick="closeModal()">×</button>'+
     '<div class="preview">'+(coinPhoto(c)?faceHTML(c).replace('class="face"','class="face zoomable" onclick="openPhotoFor('+c.id+')"'):faceHTML(c))+'<div><h3>'+esc(c.name)+'</h3><div style="color:var(--soft);font-size:13px">'+ltr([c.country,c.year].filter(Boolean).join(' · '))+'</div></div></div>'+
     '<div class="blurb" id="d-blurb">'+esc(c.blurb||'')+'</div>'+
+    ((c.photos&&c.photos.length>1)?('<div class="photostrip">'+c.photos.map(p=>'<img src="'+p+'" loading="lazy" onclick="openPhoto(\''+p+'\')">').join('')+'</div>'):'')+
     field('Name','d-name',c.name)+
     grid2(field('Country','d-country',c.country)+field('Year','d-year',c.year))+
     grid2(field('Mint / Place','d-mint',c.mint)+field('Denomination','d-denom',c.denom))+
     grid2(field('Metal','d-metal',c.metal)+field('Est. value','d-value',c.value))+
     '<div class="field"><label>'+t('tags')+'</label><div class="tagedit" id="d-tags"></div></div>'+
     '<div class="selrow"><select id="d-addcol"><option value="">'+t('addto')+'</option>'+colOpts+'</select><button class="ghost" style="flex:none;border-radius:9px;padding:10px 14px" onclick="addToCol()">+</button></div>'+
+    '<button class="nbtn" onclick="numistaLookup('+c.id+')">🔎 '+t('fixinfo')+(c.nNumber?(' <span style=\"opacity:.6;font-weight:600\">· #'+esc(''+c.nNumber)+'</span>'):'')+'</button>'+
     '<div class="row2"><button class="ghost" onclick="deleteCoin('+c.id+')">'+t('del')+'</button>'+
     '<button class="primary" onclick="saveCoin('+c.id+')">'+t('save')+'</button></div>');
   renderTagEditor(c.tags);
@@ -654,9 +684,133 @@ function saveCoin(id){
   persistCoin(c);
   closeModal();render();
 }
-function deleteCoin(id){coins=coins.filter(x=>x.id!==id);collections.forEach(col=>{if(col.coinIds.includes(id)){col.coinIds=col.coinIds.filter(x=>x!==id);persistCol(col);}});removeCoinDoc(id);if(window.STORE)window.STORE.remove('photos/'+id+'.jpg');closeModal();render();}
+function removeCoin(id,keepPhoto){
+  coins=coins.filter(x=>x.id!==id);
+  collections.forEach(col=>{if(col.coinIds.includes(id)){col.coinIds=col.coinIds.filter(x=>x!==id);persistCol(col);}});
+  removeCoinDoc(id);
+  if(!keepPhoto && window.STORE) window.STORE.remove('photos/'+id+'.jpg');
+}
+function deleteCoin(id){removeCoin(id,false);saveOrder();closeModal();render();}
+
+/* ---------- duplicates ---------- */
+function dupKey(c){
+  const name=(c.name||'').toLowerCase().replace(/\b(front|back|obverse|reverse|side)\b/g,'').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+  const yr=(c.year||'').toString().replace(/[^0-9]/g,'').slice(0,4);
+  return name?name+'|'+yr:'';
+}
+function dupGroups(){
+  const m={};
+  coins.forEach(c=>{const k=dupKey(c);if(!k)return;(m[k]=m[k]||[]).push(c);});
+  return Object.keys(m).filter(k=>m[k].length>1).map(k=>m[k]);
+}
+function openDuplicates(){
+  const groups=dupGroups();
+  let html='<button class="x" onclick="closeModal()">×</button><h3>'+t('dups')+'</h3>';
+  if(!groups.length){
+    html+='<p style="color:var(--soft);padding:18px 2px">'+t('nodups')+'</p>';
+    showSheet(html);return;
+  }
+  html+='<p style="color:var(--soft);font-size:13px;margin:2px 0 14px">'+t('dupshint')+'</p>';
+  groups.forEach(g=>{
+    const ids=g.map(c=>c.id);
+    html+='<div class="dupgroup"><div class="duphead">'+esc(g[0].name)+(g[0].year?' · '+ltr(g[0].year):'')+' — '+g.length+'</div><div class="duprow">';
+    g.forEach(c=>{
+      const p=coinPhoto(c);
+      const thumb=p?'<img src="'+p+'" loading="lazy">':'<span class="dudraw">'+faceHTML(c)+'</span>';
+      html+='<div class="ducell"><div class="duthumb" onclick="openPhotoFor('+c.id+')">'+thumb+'</div><button class="dudel" onclick="dupDelete('+c.id+')">🗑</button></div>';
+    });
+    html+='</div><button class="dumerge" onclick="dupMerge(['+ids.join(',')+'])">'+t('combine')+'</button></div>';
+  });
+  showSheet(html);
+}
+function dupDelete(id){ removeCoin(id,false); saveOrder(); openDuplicates(); }
+function dupMerge(ids){
+  const list=ids.map(id=>coins.find(c=>c.id===id)).filter(Boolean);
+  if(list.length<2)return;
+  const primary=list[0], others=list.slice(1);
+  // gather all photos (front, back, …)
+  const photos=[];
+  list.forEach(c=>coinPhotos(c).forEach(p=>{if(p&&!photos.includes(p))photos.push(p);}));
+  primary.photos=photos;
+  if(!primary.imgUrl && photos[0]) primary.imgUrl=photos[0];
+  // union tags
+  others.forEach(o=>(o.tags||[]).forEach(tg=>{if(!primary.tags.includes(tg))primary.tags.push(tg);}));
+  // keep primary in any collection the others were in
+  others.forEach(o=>collections.forEach(col=>{if(col.coinIds.includes(o.id)&&!col.coinIds.includes(primary.id)){col.coinIds.push(primary.id);persistCol(col);}}));
+  persistCoin(primary);
+  // remove the others but KEEP their photo files (now referenced by primary)
+  others.forEach(o=>removeCoin(o.id,true));
+  saveOrder();
+  openDuplicates();
+  render();
+}
 function addToCol(){const v=document.getElementById('d-addcol').value;if(!v||!editing)return;const col=collections.find(c=>c.id==v);if(col&&!col.coinIds.includes(editing.id)){col.coinIds.push(editing.id);persistCol(col);}document.getElementById('d-addcol').value='';}
 const val=id=>document.getElementById(id).value;
+
+/* ---------- Numista fact-correction (free catalog lookup) ---------- */
+let numistaResult=null;
+async function numistaLookup(id, overName, overYear){
+  const c=coins.find(x=>x.id===id); if(!c) return;
+  const back='<button class="x" onclick="openDetail('+id+')">×</button><h3>🔎 Numista</h3>';
+  showSheet(back+'<div class="status">'+t('looking')+'</div>');
+  try{
+    const body={ name: overName||c.name||'', country: c.country||'', year: (overYear!=null?overYear:(c.year||'')), denomination: c.denom||'' };
+    const r=await fetch('/.netlify/functions/price-coin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    numistaResult={coinId:id,data};
+    renderNumista(id,data);
+  }catch(e){
+    showSheet(back+'<div class="err">'+t('noreach')+' ('+(e.message||e)+')</div><div class="row2"><button class="primary" onclick="openDetail('+id+')">'+t('back')+'</button></div>');
+  }
+}
+function yrText(a,b){ return a ? (b && b!==a ? (a+'–'+b) : (''+a)) : ''; }
+function renderNumista(id,data){
+  const c=coins.find(x=>x.id===id);
+  const back='<button class="x" onclick="openDetail('+id+')">×</button><h3>🔎 Numista</h3>';
+  if(!data || !data.found){
+    showSheet(back+'<p style="color:var(--soft);padding:12px 2px">'+t('nomatch')+'</p><div class="row2"><button class="primary" onclick="openDetail('+id+')">'+t('back')+'</button></div>');
+    return;
+  }
+  const yr=yrText(data.min_year,data.max_year);
+  let html=back+
+    '<div class="nnow">'+t('nowlabel')+': '+esc([c.name,c.year,c.metal].filter(Boolean).join(' · ')||'—')+'</div>'+
+    '<div class="ncard">'+
+      '<div class="nt">'+esc(data.title||'')+'</div>'+
+      '<div class="ns">'+esc([data.issuer,yr].filter(Boolean).join(' · '))+'</div>'+
+      (data.composition?'<div class="ns">'+esc(data.composition)+'</div>':'')+
+      '<div class="nn">Numista #'+esc(''+data.n_number)+'</div>'+
+      (data.url?'<a href="'+esc(data.url)+'" target="_blank" rel="noopener">'+t('viewnum')+'</a>':'')+
+    '</div>'+
+    '<button class="napply" onclick="applyNumista('+id+')">✓ '+t('useit')+'</button>';
+  const others=(data.candidates||[]).filter(cd=>cd.id!==data.n_number);
+  if(others.length){
+    html+='<div style="font-size:13px;color:var(--soft);margin:16px 0 4px">'+t('notit')+'</div>';
+    others.forEach((cd,i)=>{
+      const cy=yrText(cd.min_year,cd.max_year);
+      html+='<div class="pickrow" onclick="numistaPick('+id+','+i+')"><div><div class="pn" style="font-size:16px">'+esc(cd.title||'')+'</div><div class="pm">'+esc([cd.issuer,cy].filter(Boolean).join(' · '))+'</div></div></div>';
+    });
+  }
+  html+='<div class="row2"><button class="ghost" onclick="openDetail('+id+')">'+t('back')+'</button></div>';
+  showSheet(html);
+}
+function numistaPick(id,i){
+  const list=(numistaResult&&numistaResult.data&&numistaResult.data.candidates||[]).filter(cd=>cd.id!==numistaResult.data.n_number);
+  const cd=list[i]; if(!cd) return;
+  numistaLookup(id, cd.title, cd.min_year);
+}
+function applyNumista(id){
+  const c=coins.find(x=>x.id===id);
+  if(!c||!numistaResult||numistaResult.coinId!==id) return;
+  const d=numistaResult.data;
+  if(d.title) c.name=d.title;
+  if(d.issuer) c.country=d.issuer;
+  const yr=yrText(d.min_year,d.max_year); if(yr) c.year=yr;
+  if(d.composition) c.metal=d.composition;
+  c.nNumber=d.n_number; c.numistaUrl=d.url||'';
+  persistCoin(c);
+  openDetail(id);
+  render();
+}
 
 /* ---------- add a coin (AI + manual) ---------- */
 let uploadTarget=null;
