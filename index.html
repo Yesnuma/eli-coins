@@ -288,6 +288,20 @@
   .napply{width:100%;margin-top:12px;border-radius:11px;padding:14px;font-size:16px;font-weight:700;
     background:var(--blue);color:#fff;border:1px solid var(--blue);cursor:pointer;}
   .nnow{font-size:14px;color:var(--soft);margin:2px 0 10px;}
+  /* Manage toolbar + spreadsheet table */
+  .mtools{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 4px;}
+  .mtools button{flex:1 1 auto;min-width:140px;border:1px solid var(--ink);background:var(--card);color:var(--ink);
+    border-radius:11px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;}
+  .mtools button.go{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .tablewrap{overflow-x:auto;padding:8px 16px 20px;-webkit-overflow-scrolling:touch;}
+  table.coingrid{border-collapse:collapse;width:100%;font-size:14px;white-space:nowrap;}
+  table.coingrid th,table.coingrid td{border:1px solid var(--line);padding:8px 10px;text-align:start;}
+  table.coingrid th{background:var(--chip);font-weight:700;position:sticky;top:0;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;}
+  table.coingrid tr{cursor:pointer;}
+  table.coingrid tr:active td{background:#f1f0ff;}
+  table.coingrid td.v{color:var(--pink);font-weight:700;}
+  table.coingrid td.n{font-family:'Courier New',monospace;color:var(--soft);}
+  table.coingrid img{width:34px;height:34px;border-radius:50%;object-fit:cover;display:block;}
 </style>
 </head>
 <body>
@@ -323,6 +337,7 @@
     <div class="tabs">
       <div class="tab on" id="tab-all" onclick="setView('all')">All coins</div>
       <div class="tab" id="tab-col" onclick="setView('collections')">Collections</div>
+      <div class="tab" id="tab-table" onclick="setView('table')">Table</div>
       <div class="vtoggle" id="vtoggle">
         <button id="v-list" class="on" onclick="setDisplay('list')" title="List">☰</button>
         <button id="v-photo" onclick="setDisplay('photo')" title="Photos">▦</button>
@@ -363,7 +378,7 @@ const T={
     suggested:"Suggested:",manual:"or type it in yourself",err:"Couldn’t read that one",
     select:"Select",selected:"selected",addsel:"Add to Collection",done:"Done",
     newalbum:"New album",addcoins:"Add coins",tapadd:"Tap coins to add or remove",selectall:"Select all",deselectall:"Deselect all",worth:"Collection value",
-    catal:"Cataloging",added:"Added",skipped:"skipped",optimizing:"Optimizing photos",dups:"Possible duplicates",dupsets:"possible duplicate sets",dupshint:"Same coin front & back? Combine them. Just a repeat? Delete one.",nodups:"No likely duplicates found. 🎉",combine:"Combine into one",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange",download:"Download photos",nophotos:"No photos to download in this album yet.",dragcol:"Hold and drag to reorder albums",addinto:"Adding to",addexisting:"Or choose from coins you already have",fixinfo:"Fix info from Numista",looking:"Looking up the catalog…",nomatch:"No catalog match found. You can still edit by hand.",noreach:"Couldn’t reach the catalog",nowlabel:"Now",useit:"Use these details",notit:"Not it? Pick another:",viewnum:"View on Numista ›",back:"Back"},
+    catal:"Cataloging",added:"Added",skipped:"skipped",optimizing:"Optimizing photos",dups:"Possible duplicates",dupsets:"possible duplicate sets",dupshint:"Same coin front & back? Combine them. Just a repeat? Delete one.",nodups:"No likely duplicates found. 🎉",combine:"Combine into one",bulkhint:"Pick several photos at once — they upload in the background",draghint:"Hold and drag a photo to rearrange",download:"Download photos",nophotos:"No photos to download in this album yet.",dragcol:"Hold and drag to reorder albums",addinto:"Adding to",addexisting:"Or choose from coins you already have",fixinfo:"Fix info from Numista",looking:"Looking up the catalog…",nomatch:"No catalog match found. You can still edit by hand.",noreach:"Couldn’t reach the catalog",nowlabel:"Now",useit:"Use these details",notit:"Not it? Pick another:",viewnum:"View on Numista ›",back:"Back",table:"Table",manage:"Manage",fixall:"🔎 Fix all info",fixallrun:"Matching against catalog",fixalldone:"Fixed",unsure:"left for you to check",combinebtn:"⚌ Combine duplicates",exportcsv:"⬇ Export to Excel",nnum:"N#",photo:"Photo",fixallconfirm:"Look up every coin against the Numista catalog and auto-fix the confident matches? Nothing risky is overwritten — unsure ones are left for you.",nothingtofix:"All coins already have a catalog match. 🎉"},
   he:{title:"המטבעות של אלי",search:"חיפוש",all:"כל המטבעות",collections:"אוספים",add:"הוספת מטבע",
     save_col:"✦ צור אוסף מאלה",clear:"ניקוי",coins:"מטבעות",take:"צילום או בחירת תמונה",
     reading:"קורא את המטבע…",country:"מדינה",year:"שנה",mint:"מטבעה / מקום",denom:"ערך נקוב",
@@ -373,7 +388,7 @@ const T={
     suggested:"מוצע:",manual:"או הקלידו בעצמכם",err:"לא הצלחתי לקרוא את התמונה",
     select:"בחירה",selected:"נבחרו",addsel:"הוספה לאוסף",done:"סיום",
     newalbum:"אוסף חדש",addcoins:"הוספת מטבעות",tapadd:"הקישו על מטבעות להוספה או הסרה",selectall:"בחר הכול",deselectall:"בטל הכול",worth:"שווי האוסף",
-    catal:"מקטלג",added:"נוספו",skipped:"דולגו",optimizing:"מייעל תמונות",dups:"כפילויות אפשריות",dupsets:"קבוצות כפילות אפשריות",dupshint:"אותו מטבע מקדימה ומאחורה? אחדו אותם. סתם כפילות? מחקו אחת.",nodups:"לא נמצאו כפילויות. 🎉",combine:"איחוד לאחד",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש",download:"הורדת תמונות",nophotos:"אין עדיין תמונות להורדה באוסף הזה.",dragcol:"החזיקו וגררו כדי לסדר אוספים",addinto:"מוסיף אל",addexisting:"או בחרו ממטבעות שכבר יש לכם",fixinfo:"תיקון פרטים מ-Numista",looking:"מחפש בקטלוג…",nomatch:"לא נמצאה התאמה בקטלוג. אפשר לערוך ידנית.",noreach:"לא הצלחתי להתחבר לקטלוג",nowlabel:"עכשיו",useit:"השתמש בפרטים אלה",notit:"לא זה? בחרו אחר:",viewnum:"פתח ב-Numista ›",back:"חזרה"}
+    catal:"מקטלג",added:"נוספו",skipped:"דולגו",optimizing:"מייעל תמונות",dups:"כפילויות אפשריות",dupsets:"קבוצות כפילות אפשריות",dupshint:"אותו מטבע מקדימה ומאחורה? אחדו אותם. סתם כפילות? מחקו אחת.",nodups:"לא נמצאו כפילויות. 🎉",combine:"איחוד לאחד",bulkhint:"אפשר לבחור כמה תמונות יחד — הן יועלו ברקע",draghint:"החזיקו וגררו תמונה כדי לסדר מחדש",download:"הורדת תמונות",nophotos:"אין עדיין תמונות להורדה באוסף הזה.",dragcol:"החזיקו וגררו כדי לסדר אוספים",addinto:"מוסיף אל",addexisting:"או בחרו ממטבעות שכבר יש לכם",fixinfo:"תיקון פרטים מ-Numista",looking:"מחפש בקטלוג…",nomatch:"לא נמצאה התאמה בקטלוג. אפשר לערוך ידנית.",noreach:"לא הצלחתי להתחבר לקטלוג",nowlabel:"עכשיו",useit:"השתמש בפרטים אלה",notit:"לא זה? בחרו אחר:",viewnum:"פתח ב-Numista ›",back:"חזרה",table:"טבלה",manage:"ניהול",fixall:"🔎 תקן הכול",fixallrun:"מתאים מול הקטלוג",fixalldone:"תוקנו",unsure:"נשארו לבדיקה שלך",combinebtn:"⚌ אחד כפילויות",exportcsv:"⬇ ייצוא לאקסל",nnum:"מס׳ N",photo:"תמונה",fixallconfirm:"לחפש כל מטבע מול קטלוג Numista ולתקן אוטומטית את ההתאמות הבטוחות? שום דבר מסוכן לא יידרס — הלא-בטוחים יישארו לך לבדיקה.",nothingtofix:"לכל המטבעות כבר יש התאמה בקטלוג. 🎉"}
 };
 let lang='en';
 const t=k=>T[lang][k];
@@ -501,6 +516,7 @@ function render(){
   document.getElementById('q').placeholder=t('search');
   document.getElementById('tab-all').textContent=t('all');
   document.getElementById('tab-col').textContent=t('collections');
+  document.getElementById('tab-table').textContent=t('table');
   document.getElementById('fab-t').textContent=t('add');
   document.getElementById('savecol').textContent=t('save_col');
   updateTotal();
@@ -511,6 +527,7 @@ function render(){
   document.getElementById('v-photo').classList.toggle('on',displayMode==='photo');
 
   if(view==='collections'){selectMode=false;updateSelChrome();renderCollections();document.getElementById('tagwrap').style.display='none';return;}
+  if(view==='table'){selectMode=false;updateSelChrome();renderTable();document.getElementById('tagwrap').style.display='none';return;}
   document.getElementById('tagwrap').style.display='block';
 
   // tag rail
@@ -625,7 +642,7 @@ function exitCollection(){currentCol=null;document.getElementById('vtoggle').sty
 
 function toggleTag(tg){activeTags.has(tg)?activeTags.delete(tg):activeTags.add(tg);render();}
 function clearTags(){activeTags.clear();render();}
-function setView(v){currentCol=null;view=v;document.getElementById('tab-all').classList.toggle('on',v==='all');document.getElementById('tab-col').classList.toggle('on',v==='collections');render();}
+function setView(v){currentCol=null;view=v;document.getElementById('tab-all').classList.toggle('on',v==='all');document.getElementById('tab-col').classList.toggle('on',v==='collections');document.getElementById('tab-table').classList.toggle('on',v==='table');render();}
 function setDisplay(m){displayMode=m;if(m==='photo')selectMode=false;if(currentCol){openCollection(currentCol);}else{render();}}
 function setLang(l){lang=l;document.documentElement.dir=(l==='he')?'rtl':'ltr';document.getElementById('l-en').classList.toggle('on',l==='en');document.getElementById('l-he').classList.toggle('on',l==='he');render();}
 const esc=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -810,6 +827,102 @@ function applyNumista(id){
   persistCoin(c);
   openDetail(id);
   render();
+}
+
+/* ---------- Table (spreadsheet) view + Export + Fix-all ---------- */
+function renderTable(){
+  document.getElementById('count').textContent=coins.length+' '+t('coins');
+  document.getElementById('savecol').style.display='none';
+  const sb=document.getElementById('selectbtn'); if(sb) sb.style.display='none';
+  const NAME=lang==='he'?'שם':'Name';
+  const tools='<div class="mtools">'+
+    '<button class="go" onclick="fixAll()">'+t('fixall')+'</button>'+
+    '<button onclick="openDuplicates()">'+t('combinebtn')+'</button>'+
+    '<button onclick="exportCSV()">'+t('exportcsv')+'</button>'+
+  '</div>';
+  const head='<tr><th>'+t('photo')+'</th><th>'+NAME+'</th><th>'+t('country')+'</th><th>'+t('year')+'</th><th>'+t('mint')+'</th><th>'+t('denom')+'</th><th>'+t('metal')+'</th><th>'+t('value')+'</th><th>'+t('nnum')+'</th><th>'+t('tags')+'</th></tr>';
+  const rows=coins.map(c=>{
+    const p=coinPhoto(c);
+    const ph=p?'<img src="'+p+'" loading="lazy" decoding="async">':'';
+    return '<tr onclick="openDetail('+c.id+')">'+
+      '<td>'+ph+'</td>'+
+      '<td>'+esc(c.name||'')+'</td>'+
+      '<td>'+esc(c.country||'')+'</td>'+
+      '<td>'+ltr(c.year||'')+'</td>'+
+      '<td>'+esc(c.mint||'')+'</td>'+
+      '<td>'+esc(c.denom||'')+'</td>'+
+      '<td>'+esc(c.metal||'')+'</td>'+
+      '<td class="v">'+ltr(shortValue(c.value))+'</td>'+
+      '<td class="n">'+(c.nNumber?esc(''+c.nNumber):'')+'</td>'+
+      '<td>'+esc((c.tags||[]).join(', '))+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('main').innerHTML=tools+'<div class="tablewrap"><table class="coingrid"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
+}
+function csvCell(s){s=(s==null?'':''+s);return '"'+s.replace(/"/g,'""')+'"';}
+function exportCSV(){
+  const cols=['Name','Country','Year','Mint','Denomination','Metal','Value','Numista N#','Numista URL','Tags'];
+  const lines=[cols.map(csvCell).join(',')];
+  coins.forEach(c=>{
+    lines.push([c.name,c.country,c.year,c.mint,c.denom,c.metal,c.value,(c.nNumber||''),(c.numistaUrl||''),(c.tags||[]).join('; ')].map(csvCell).join(','));
+  });
+  const csv='\ufeff'+lines.join('\r\n'); // BOM so Excel reads Hebrew/UTF-8 correctly
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='eli-coins.csv';document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},600);
+}
+/* Fix-all: look every unstamped coin up against Numista, auto-apply confident matches */
+let nbatch={running:false,done:0,fixed:0,total:0};
+function nbatchChip(){
+  let el=document.getElementById('nbatchchip');
+  if(!el){el=document.createElement('div');el.id='nbatchchip';el.className='batchchip';document.body.appendChild(el);}
+  if(!nbatch.total){el.style.display='none';return;}
+  el.style.display='flex';
+  if(nbatch.running){
+    el.innerHTML='<span class="spin"></span><span>'+t('fixallrun')+' '+nbatch.done+' / '+nbatch.total+' …</span>';
+  }else{
+    const left=nbatch.total-nbatch.fixed;
+    el.innerHTML='<span>✓ '+t('fixalldone')+' '+nbatch.fixed+(left?(' · '+left+' '+t('unsure')):'')+'</span>';
+    setTimeout(()=>{if(!nbatch.running){el.style.display='none';nbatch.total=0;}},5000);
+  }
+}
+function yearNum(y){const m=String(y||'').match(/\d{4}/);return m?+m[0]:null;}
+async function numistaFetch(c,overName,overYear){
+  const body={name:overName||c.name||'',country:c.country||'',year:(overYear!=null?overYear:(c.year||'')),denomination:c.denom||''};
+  const r=await fetch('/.netlify/functions/price-coin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return await r.json();
+}
+async function fixAll(){
+  if(nbatch.running) return;
+  const todo=coins.filter(c=>!c.nNumber);   // only coins without a catalog match yet (keeps API calls low + resumable)
+  if(!todo.length){ alert(t('nothingtofix')); return; }
+  if(!confirm(t('fixallconfirm'))) return;
+  nbatch={running:true,done:0,fixed:0,total:todo.length};
+  nbatchChip();
+  for(const c of todo){
+    try{
+      const d=await numistaFetch(c);
+      if(d && d.found){
+        const cy=yearNum(c.year), my=d.min_year, xy=d.max_year;
+        const confident = !cy || (my && cy>=my && cy<=(xy||my)); // year fits the catalog range (or no year to contradict)
+        if(confident){
+          if(d.title) c.name=d.title;
+          if(d.issuer) c.country=d.issuer;
+          const yr=yrText(d.min_year,d.max_year); if(yr) c.year=yr;
+          if(d.composition) c.metal=d.composition;
+          c.nNumber=d.n_number; c.numistaUrl=d.url||'';
+          persistCoin(c);
+          nbatch.fixed++;
+        }
+      }
+    }catch(e){ /* network hiccup — skip, it'll retry next run */ }
+    nbatch.done++;
+    nbatchChip();
+    if(view==='table' && nbatch.done%10===0 && !document.getElementById('modal').classList.contains('show')) renderTable();
+  }
+  nbatch.running=false; nbatchChip();
+  if(view==='table') renderTable();
 }
 
 /* ---------- add a coin (AI + manual) ---------- */
